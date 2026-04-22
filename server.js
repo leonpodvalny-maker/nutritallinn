@@ -170,8 +170,11 @@ app.post('/api/checkout', checkoutLimiter, async (req, res) => {
     const txData = {
       transaction: {
         amount,
-        currency:  'EUR',
-        reference: orderId,
+        currency:         'EUR',
+        reference:        orderId,
+        return_url:       `${siteUrl}/payment-return`,
+        cancel_url:       `${siteUrl}/order?plan=${plan}&cancelled=1`,
+        notification_url: `${siteUrl}/api/payment-notify`,
       },
       customer: {
         email,
