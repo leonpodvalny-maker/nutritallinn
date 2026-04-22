@@ -15,6 +15,10 @@ if (!RECIPIENT_EMAIL) {
   console.error('FATAL: RECIPIENT_EMAIL env var is not set');
   process.exit(1);
 }
+if (!process.env.RESEND_API_KEY) {
+  console.error('FATAL: RESEND_API_KEY env var is not set');
+  process.exit(1);
+}
 const VALID_PLANS = new Set(['50', '175']);
 
 // ── Security middleware ───────────────────────────────────────────────────────
@@ -35,19 +39,33 @@ app.use(helmet({
 }));
 
 app.use(rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Too many requests, please try again later.',
 }));
 
+const checkoutLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many requests, please try again later.',
+});
+
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// In-memory order store
+// In-memory order store — entries expire after 30 minutes
 const pendingOrders = {};
+const ORDER_TTL_MS = 30 * 60 * 1000;
+
+function storePendingOrder(orderId, data) {
+  pendingOrders[orderId] = data;
+  setTimeout(() => delete pendingOrders[orderId], ORDER_TTL_MS);
+}
 
 // ── MAC helpers (Maksekeskus uses SHA-512, not HMAC) ─────────────────────────
 
@@ -120,14 +138,16 @@ app.get('/success', async (req, res) => {
 
 // ── Checkout: form → Maksekeskus transaction ──────────────────────────────────
 
-app.post('/api/checkout', async (req, res) => {
+app.post('/api/checkout', checkoutLimiter, async (req, res) => {
   const validationError = validateOrderFields(req.body);
   if (validationError) {
-    return res.status(400).send(`<p style="font-family:sans-serif;padding:2rem;">Неверные данные. <a href="javascript:history.back()">← Назад</a></p>`);
+    const plan = req.body.plan && VALID_PLANS.has(req.body.plan) ? req.body.plan : '50';
+    return res.redirect(`/order?plan=${plan}&error=1`);
   }
 
   const { name, surname, age, phone, email, plan } = req.body;
-  const customerIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1').split(',')[0].trim();
+  const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+  const customerIp = /^[\d.:\w]+$/.test(rawIp) ? rawIp : '127.0.0.1';
 
   const amount   = plan === '175' ? '175.00' : '50.00';
   const planName = plan === '175' ? 'Месячное ведение (4 недели)' : 'Консультация по питанию';
@@ -177,7 +197,7 @@ app.post('/api/checkout', async (req, res) => {
     const redirectMethod = (txResponse.data.payment_methods?.other || []).find(m => m.name === 'redirect');
     const paymentUrl = redirectMethod?.url || `https://payment.maksekeskus.ee/pay.html?trx=${txId}`;
 
-    pendingOrders[orderId] = { name, surname, age, phone, email, plan, planName, amount };
+    storePendingOrder(orderId, { name, surname, age, phone, email, plan, planName, amount });
     res.redirect(paymentUrl);
 
   } catch (err) {

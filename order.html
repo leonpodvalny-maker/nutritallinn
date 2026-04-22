@@ -200,6 +200,9 @@
     <div id="cancelledMsg" class="cancelled-msg" style="display:none;">
       Оплата была отменена. Попробуйте ещё раз.
     </div>
+    <div id="errorMsg" class="cancelled-msg" style="display:none;">
+      Неверные данные. Пожалуйста, проверьте форму и попробуйте ещё раз.
+    </div>
 
     <div class="plan-badge" id="planBadge">Загрузка...</div>
     <h1 id="planTitle">Консультация</h1>
@@ -264,6 +267,9 @@
 
   if (params.get('cancelled') === '1') {
     document.getElementById('cancelledMsg').style.display = 'block';
+  }
+  if (params.get('error') === '1') {
+    document.getElementById('errorMsg').style.display = 'block';
   }
 
   document.getElementById('orderForm').addEventListener('submit', function() {
