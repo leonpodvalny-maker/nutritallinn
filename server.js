@@ -199,9 +199,11 @@ app.post('/api/checkout', checkoutLimiter, async (req, res) => {
 
     const txId = txResponse.data.id;
     console.log('Transaction created:', txId);
+    console.log('Payment methods:', JSON.stringify(txResponse.data.payment_methods));
 
     const redirectMethod = (txResponse.data.payment_methods?.other || []).find(m => m.name === 'redirect');
     const paymentUrl = redirectMethod?.url || `https://payment.maksekeskus.ee/pay.html?trx=${txId}`;
+    console.log('Redirecting to:', paymentUrl);
 
     storePendingOrder(orderId, { name, surname, age, phone, email, plan, planName, amount });
     res.redirect(paymentUrl);
