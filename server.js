@@ -19,6 +19,7 @@ if (!process.env.RESEND_API_KEY) {
   console.error('FATAL: RESEND_API_KEY env var is not set');
   process.exit(1);
 }
+const RESEND_FROM = process.env.RESEND_FROM || 'onboarding@resend.dev';
 const VALID_PLANS = new Set(['50', '175']);
 
 // ── Security middleware ───────────────────────────────────────────────────────
@@ -114,6 +115,7 @@ function validateOrderFields(body) {
 
 app.get('/',        (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/order',   (req, res) => res.sendFile(path.join(__dirname, 'order.html')));
+app.get('/error',   (req, res) => res.sendFile(path.join(__dirname, 'error.html')));
 app.get('/success', async (req, res) => {
   const { demo, name, surname, age, phone, email, plan, orderId } = req.query;
 
@@ -203,12 +205,7 @@ app.post('/api/checkout', checkoutLimiter, async (req, res) => {
   } catch (err) {
     console.error('Checkout error status:', err.response?.status);
     console.error('Checkout error:', err.response?.data ? JSON.stringify(err.response.data) : err.message);
-    res.status(500).send(`
-      <p style="font-family:sans-serif;padding:2rem;max-width:600px;">
-        Ошибка при создании платежа. Пожалуйста, попробуйте ещё раз.<br><br>
-        <a href="/order?plan=${encodeURIComponent(plan)}">← Попробуйте ещё раз</a>
-      </p>
-    `);
+    res.redirect(`/error?plan=${encodeURIComponent(plan)}`);
   }
 });
 
@@ -264,48 +261,77 @@ async function sendEmail(order, orderId) {
   const { name, surname, age, phone, email, planName, amount } = order;
   const e = escHtml;
   try {
-    await resend.emails.send({
-      from:    'onboarding@resend.dev',
-      to:      RECIPIENT_EMAIL,
-      subject: `Новая запись: ${e(planName)} — ${e(name)} ${e(surname)}`,
-      html: `
-        <div style="font-family:Calibri,sans-serif;max-width:600px;margin:0 auto;padding:32px;color:#1C1C1A;">
-          <h2 style="color:#C8A96E;margin-bottom:24px;">Новая запись на консультацию</h2>
-          <table style="width:100%;border-collapse:collapse;">
-            <tr style="border-bottom:1px solid #E5E0D8;">
-              <td style="padding:10px 0;color:#6B6860;width:140px;">Услуга</td>
-              <td style="padding:10px 0;font-weight:600;">${e(planName)}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #E5E0D8;">
-              <td style="padding:10px 0;color:#6B6860;">Сумма</td>
-              <td style="padding:10px 0;">${e(amount)} €</td>
-            </tr>
-            <tr style="border-bottom:1px solid #E5E0D8;">
-              <td style="padding:10px 0;color:#6B6860;">Имя</td>
-              <td style="padding:10px 0;">${e(name)} ${e(surname)}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #E5E0D8;">
-              <td style="padding:10px 0;color:#6B6860;">Возраст</td>
-              <td style="padding:10px 0;">${e(age)}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #E5E0D8;">
-              <td style="padding:10px 0;color:#6B6860;">Телефон</td>
-              <td style="padding:10px 0;">${e(phone)}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #E5E0D8;">
-              <td style="padding:10px 0;color:#6B6860;">E-mail</td>
-              <td style="padding:10px 0;">${e(email)}</td>
-            </tr>
-            <tr>
-              <td style="padding:10px 0;color:#6B6860;">Номер заказа</td>
-              <td style="padding:10px 0;font-size:0.85em;color:#999;">${e(orderId)}</td>
-            </tr>
-          </table>
-          <p style="margin-top:32px;font-size:0.85em;color:#999;">Оплата подтверждена через Maksekeskus</p>
-        </div>
-      `,
-    });
-    console.log('Email sent for order', orderId);
+    await Promise.all([
+      resend.emails.send({
+        from:    RESEND_FROM,
+        to:      RECIPIENT_EMAIL,
+        subject: `Новая запись: ${e(planName)} — ${e(name)} ${e(surname)}`,
+        html: `
+          <div style="font-family:Calibri,sans-serif;max-width:600px;margin:0 auto;padding:32px;color:#1C1C1A;">
+            <h2 style="color:#C8A96E;margin-bottom:24px;">Новая запись на консультацию</h2>
+            <table style="width:100%;border-collapse:collapse;">
+              <tr style="border-bottom:1px solid #E5E0D8;">
+                <td style="padding:10px 0;color:#6B6860;width:140px;">Услуга</td>
+                <td style="padding:10px 0;font-weight:600;">${e(planName)}</td>
+              </tr>
+              <tr style="border-bottom:1px solid #E5E0D8;">
+                <td style="padding:10px 0;color:#6B6860;">Сумма</td>
+                <td style="padding:10px 0;">${e(amount)} €</td>
+              </tr>
+              <tr style="border-bottom:1px solid #E5E0D8;">
+                <td style="padding:10px 0;color:#6B6860;">Имя</td>
+                <td style="padding:10px 0;">${e(name)} ${e(surname)}</td>
+              </tr>
+              <tr style="border-bottom:1px solid #E5E0D8;">
+                <td style="padding:10px 0;color:#6B6860;">Возраст</td>
+                <td style="padding:10px 0;">${e(age)}</td>
+              </tr>
+              <tr style="border-bottom:1px solid #E5E0D8;">
+                <td style="padding:10px 0;color:#6B6860;">Телефон</td>
+                <td style="padding:10px 0;">${e(phone)}</td>
+              </tr>
+              <tr style="border-bottom:1px solid #E5E0D8;">
+                <td style="padding:10px 0;color:#6B6860;">E-mail</td>
+                <td style="padding:10px 0;">${e(email)}</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0;color:#6B6860;">Номер заказа</td>
+                <td style="padding:10px 0;font-size:0.85em;color:#999;">${e(orderId)}</td>
+              </tr>
+            </table>
+            <p style="margin-top:32px;font-size:0.85em;color:#999;">Оплата подтверждена через Maksekeskus</p>
+          </div>
+        `,
+      }),
+      resend.emails.send({
+        from:    RESEND_FROM,
+        to:      email,
+        subject: `Запись подтверждена — ${e(planName)}`,
+        html: `
+          <div style="font-family:Calibri,sans-serif;max-width:600px;margin:0 auto;padding:32px;color:#1C1C1A;">
+            <h2 style="color:#C8A96E;margin-bottom:24px;">Спасибо за запись!</h2>
+            <p style="margin-bottom:16px;">Здравствуйте, ${e(name)}!</p>
+            <p style="margin-bottom:24px;color:#6B6860;">Ваша запись на <strong style="color:#1C1C1A;">${e(planName)}</strong> получена. Специалист свяжется с вами по телефону или e-mail в течение дня.</p>
+            <table style="width:100%;border-collapse:collapse;">
+              <tr style="border-bottom:1px solid #E5E0D8;">
+                <td style="padding:10px 0;color:#6B6860;width:140px;">Услуга</td>
+                <td style="padding:10px 0;font-weight:600;">${e(planName)}</td>
+              </tr>
+              <tr style="border-bottom:1px solid #E5E0D8;">
+                <td style="padding:10px 0;color:#6B6860;">Сумма</td>
+                <td style="padding:10px 0;">${e(amount)} €</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0;color:#6B6860;">Номер заказа</td>
+                <td style="padding:10px 0;font-size:0.85em;color:#999;">${e(orderId)}</td>
+              </tr>
+            </table>
+            <p style="margin-top:32px;font-size:0.85em;color:#999;">Nutritallinn — нутрициолог в Таллине</p>
+          </div>
+        `,
+      }),
+    ]);
+    console.log('Emails sent for order', orderId);
   } catch (err) {
     console.error('Email error:', err.message);
   }

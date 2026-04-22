@@ -12,6 +12,7 @@
   <meta property="og:url" content="https://nutritallinn.onrender.com/" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="ru_RU" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -563,10 +564,76 @@
       opacity: 1;
     }
 
+    /* ── BURGER ── */
+    .burger {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      width: 32px;
+      height: 32px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .burger span {
+      display: block;
+      width: 100%;
+      height: 1.5px;
+      background: var(--dark);
+      transition: transform 0.25s, opacity 0.25s;
+    }
+
+    .burger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+    .burger.open span:nth-child(2) { opacity: 0; }
+    .burger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      inset: 72px 0 0 0;
+      background: var(--warm-white);
+      z-index: 99;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2.5rem;
+      text-align: center;
+    }
+
+    .mobile-menu.open { display: flex; }
+
+    .mobile-menu a {
+      font-size: 1.1rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--dark);
+      text-decoration: none;
+    }
+
+    .mobile-menu .mobile-contacts {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .mobile-menu .mobile-contacts a {
+      font-size: 0.9rem;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--accent);
+    }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
       nav { padding: 0 4vw; }
       .nav-links { display: none; }
+      .nav-contacts { display: none; }
+      .burger { display: flex; }
       section { padding: 5rem 6vw; }
       .process-inner { grid-template-columns: 1fr; gap: 3rem; }
       .process-image-placeholder { position: static; aspect-ratio: 4/3; }
@@ -590,7 +657,21 @@
       <a href="mailto:jelena.tsumakova@gmail.com">jelena.tsumakova@gmail.com</a>
     </div>
   </div>
+  <button class="burger" id="burger" aria-label="Меню" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#services" id="mobileServices">Услуги</a>
+  <a href="#process" id="mobileProcess">Как это работает</a>
+  <a href="#contact" id="mobileContact">Контакт</a>
+  <div class="mobile-contacts">
+    <span>+372 55 43 213</span>
+    <a href="mailto:jelena.tsumakova@gmail.com">jelena.tsumakova@gmail.com</a>
+  </div>
+</div>
 
 <!-- CARDS -->
 <section class="cards-section" id="services">
@@ -782,5 +863,25 @@
   <p class="footer-copy">© 2025</p>
 </footer>
 
+<script>
+  const burger = document.getElementById('burger');
+  const mobileMenu = document.getElementById('mobileMenu');
+
+  burger.addEventListener('click', () => {
+    const isOpen = mobileMenu.classList.toggle('open');
+    burger.classList.toggle('open', isOpen);
+    burger.setAttribute('aria-expanded', isOpen);
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  });
+
+  mobileMenu.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      mobileMenu.classList.remove('open');
+      burger.classList.remove('open');
+      burger.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+    });
+  });
+</script>
 </body>
 </html>

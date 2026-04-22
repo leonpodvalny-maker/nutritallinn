@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Оплата прошла успешно — Nutritallinn</title>
+  <title>Ошибка оплаты — Nutritallinn</title>
   <meta name="robots" content="noindex, nofollow" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>" />
   <style>
@@ -38,21 +38,21 @@
       text-align: center;
     }
 
-    .check {
+    .icon {
       width: 64px;
       height: 64px;
       border-radius: 50%;
-      background: var(--accent-light);
+      background: #FFF3CD;
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 auto 2rem;
     }
 
-    .check svg {
+    .icon svg {
       width: 28px;
       height: 28px;
-      stroke: var(--accent);
+      stroke: #C8A96E;
     }
 
     h1 {
@@ -75,7 +75,7 @@
       margin: 1.8rem auto;
     }
 
-    .home-link {
+    .btn {
       display: inline-block;
       margin-top: 1.5rem;
       padding: 0.9rem 2.5rem;
@@ -88,21 +88,29 @@
       transition: background 0.2s;
     }
 
-    .home-link:hover { background: #333; }
+    .btn:hover { background: #333; }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="check">
+    <div class="icon">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="20 6 9 17 4 12"/>
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
       </svg>
     </div>
-    <h1>Оплата прошла успешно!</h1>
+    <h1>Ошибка при оплате</h1>
     <div class="divider"></div>
-    <p>Спасибо за запись. Специалист свяжется с вами по телефону и e-mail в течение дня.</p>
-    <p>Подтверждение также отправлено специалисту.</p>
-    <a href="/" class="home-link">На главную</a>
+    <p>Не удалось создать платёж. Пожалуйста, попробуйте ещё раз.</p>
+    <p>Если ошибка повторяется — напишите нам напрямую.</p>
+    <a id="retryLink" href="/order" class="btn">Попробовать ещё раз</a>
   </div>
+  <script>
+    const plan = new URLSearchParams(window.location.search).get('plan');
+    if (plan === '50' || plan === '175') {
+      document.getElementById('retryLink').href = '/order?plan=' + plan;
+    }
+  </script>
 </body>
 </html>
