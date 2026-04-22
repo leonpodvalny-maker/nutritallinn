@@ -36,6 +36,7 @@ app.use(helmet({
       connectSrc: ["'self'"],
       frameSrc:   ["'none'"],
       objectSrc:  ["'none'"],
+      formAction: ["'self'", 'https://payment.maksekeskus.ee'],
     },
   },
 }));
@@ -206,7 +207,7 @@ app.post('/api/checkout', checkoutLimiter, async (req, res) => {
     console.log('Redirecting to:', paymentUrl);
 
     storePendingOrder(orderId, { name, surname, age, phone, email, plan, planName, amount });
-    res.redirect(paymentUrl);
+    res.redirect(303, paymentUrl);
 
   } catch (err) {
     console.error('Checkout error status:', err.response?.status);
