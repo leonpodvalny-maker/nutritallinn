@@ -10,12 +10,29 @@ const rateLimit = require('express-rate-limit');
 const app    = express();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const RECIPIENT_EMAIL = process.env.RECIPIENT_EMAIL || 'jelena.tsumakova@gmail.com';
+const RECIPIENT_EMAIL = process.env.RECIPIENT_EMAIL;
+if (!RECIPIENT_EMAIL) {
+  console.error('FATAL: RECIPIENT_EMAIL env var is not set');
+  process.exit(1);
+}
 const VALID_PLANS = new Set(['50', '175']);
 
 // ── Security middleware ───────────────────────────────────────────────────────
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc:   ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc:    ["'self'", 'https://fonts.gstatic.com'],
+      scriptSrc:  ["'self'"],
+      imgSrc:     ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+      frameSrc:   ["'none'"],
+      objectSrc:  ["'none'"],
+    },
+  },
+}));
 
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -48,6 +65,17 @@ function verifyMac(payload, secretKey) {
   const a = Buffer.from(expected.padEnd(256));
   const b = Buffer.from(actual.padEnd(256));
   return expected.length === actual.length && crypto.timingSafeEqual(a, b);
+}
+
+// ── HTML escaping for email template ─────────────────────────────────────────
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // ── Input validation helper ───────────────────────────────────────────────────
@@ -214,42 +242,43 @@ app.get('/payment-return', (req, res) => {
 
 async function sendEmail(order, orderId) {
   const { name, surname, age, phone, email, planName, amount } = order;
+  const e = escHtml;
   try {
     await resend.emails.send({
       from:    'onboarding@resend.dev',
       to:      RECIPIENT_EMAIL,
-      subject: `Новая запись: ${planName} — ${name} ${surname}`,
+      subject: `Новая запись: ${e(planName)} — ${e(name)} ${e(surname)}`,
       html: `
         <div style="font-family:Calibri,sans-serif;max-width:600px;margin:0 auto;padding:32px;color:#1C1C1A;">
           <h2 style="color:#C8A96E;margin-bottom:24px;">Новая запись на консультацию</h2>
           <table style="width:100%;border-collapse:collapse;">
             <tr style="border-bottom:1px solid #E5E0D8;">
               <td style="padding:10px 0;color:#6B6860;width:140px;">Услуга</td>
-              <td style="padding:10px 0;font-weight:600;">${planName}</td>
+              <td style="padding:10px 0;font-weight:600;">${e(planName)}</td>
             </tr>
             <tr style="border-bottom:1px solid #E5E0D8;">
               <td style="padding:10px 0;color:#6B6860;">Сумма</td>
-              <td style="padding:10px 0;">${amount} €</td>
+              <td style="padding:10px 0;">${e(amount)} €</td>
             </tr>
             <tr style="border-bottom:1px solid #E5E0D8;">
               <td style="padding:10px 0;color:#6B6860;">Имя</td>
-              <td style="padding:10px 0;">${name} ${surname}</td>
+              <td style="padding:10px 0;">${e(name)} ${e(surname)}</td>
             </tr>
             <tr style="border-bottom:1px solid #E5E0D8;">
               <td style="padding:10px 0;color:#6B6860;">Возраст</td>
-              <td style="padding:10px 0;">${age}</td>
+              <td style="padding:10px 0;">${e(age)}</td>
             </tr>
             <tr style="border-bottom:1px solid #E5E0D8;">
               <td style="padding:10px 0;color:#6B6860;">Телефон</td>
-              <td style="padding:10px 0;">${phone}</td>
+              <td style="padding:10px 0;">${e(phone)}</td>
             </tr>
             <tr style="border-bottom:1px solid #E5E0D8;">
               <td style="padding:10px 0;color:#6B6860;">E-mail</td>
-              <td style="padding:10px 0;">${email}</td>
+              <td style="padding:10px 0;">${e(email)}</td>
             </tr>
             <tr>
               <td style="padding:10px 0;color:#6B6860;">Номер заказа</td>
-              <td style="padding:10px 0;font-size:0.85em;color:#999;">${orderId}</td>
+              <td style="padding:10px 0;font-size:0.85em;color:#999;">${e(orderId)}</td>
             </tr>
           </table>
           <p style="margin-top:32px;font-size:0.85em;color:#999;">Оплата подтверждена через Maksekeskus</p>
