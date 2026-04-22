@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Live Site
+
+https://nutritallinn.onrender.com (hosted on Render, free tier — cold start ~30 sec after inactivity)
+
 ## Project Overview
 
 A minimal Node.js/Express server for a nutrition consultant booking and payment site. Single-file backend (`server.js`) serving static HTML pages with Maksekeskus (Estonian payment processor) integration and Resend email notifications.
@@ -51,4 +55,5 @@ See `.env.example`. Required for live payments:
 | `MAKSEKESKUS_SHOP_ID` | Maksekeskus shop ID |
 | `MAKSEKESKUS_SECRET_KEY` | Maksekeskus secret for MAC signing |
 | `SITE_URL` | Public URL for payment redirects (e.g. `https://nutritallinn.onrender.com`) |
-| `RECIPIENT_EMAIL` | Email address that receives booking notifications (defaults to hardcoded value) |
+| `RECIPIENT_EMAIL` | Email address that receives booking notifications (required, server exits if missing) |
+| `RESEND_FROM` | Sender address for emails, e.g. `Нутрициолог <noreply@domain.com>` (optional, defaults to `onboarding@resend.dev`) |
