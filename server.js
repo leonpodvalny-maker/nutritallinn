@@ -49,7 +49,7 @@ app.use(rateLimit({
 
 const checkoutLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Too many requests, please try again later.',
@@ -101,13 +101,13 @@ function escHtml(str) {
 
 function validateOrderFields(body) {
   const { name, surname, age, phone, email, plan } = body;
-  if (!VALID_PLANS.has(plan)) return 'Invalid plan';
-  if (!name || typeof name !== 'string' || name.trim().length < 1 || name.length > 100) return 'Invalid name';
-  if (!surname || typeof surname !== 'string' || surname.trim().length < 1 || surname.length > 100) return 'Invalid surname';
+  if (!VALID_PLANS.has(plan)) { console.warn('Validation fail: plan =', JSON.stringify(plan)); return 'Invalid plan'; }
+  if (!name || typeof name !== 'string' || name.trim().length < 1 || name.length > 100) { console.warn('Validation fail: name =', JSON.stringify(name)); return 'Invalid name'; }
+  if (!surname || typeof surname !== 'string' || surname.trim().length < 1 || surname.length > 100) { console.warn('Validation fail: surname =', JSON.stringify(surname)); return 'Invalid surname'; }
   const ageNum = parseInt(age, 10);
-  if (isNaN(ageNum) || ageNum < 16 || ageNum > 99) return 'Invalid age';
-  if (!phone || typeof phone !== 'string' || phone.length > 30) return 'Invalid phone';
-  if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) return 'Invalid email';
+  if (isNaN(ageNum) || ageNum < 16 || ageNum > 99) { console.warn('Validation fail: age =', JSON.stringify(age)); return 'Invalid age'; }
+  if (!phone || typeof phone !== 'string' || phone.length > 30) { console.warn('Validation fail: phone =', JSON.stringify(phone)); return 'Invalid phone'; }
+  if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) { console.warn('Validation fail: email =', JSON.stringify(email)); return 'Invalid email'; }
   return null;
 }
 
