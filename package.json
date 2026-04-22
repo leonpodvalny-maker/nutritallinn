@@ -1,0 +1,18 @@
+{
+  "name": "nutritallinn",
+  "version": "1.0.0",
+  "description": "Nutrition consultant booking + payment site",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "resend": "^3.2.0",
+    "axios": "^1.6.7",
+    "dotenv": "^16.4.1",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.2.0"
+  }
+}

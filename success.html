@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Оплата прошла успешно</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream: #FAF7F2;
+      --warm-white: #FDFCFA;
+      --dark: #1C1C1A;
+      --muted: #6B6860;
+      --accent: #C8A96E;
+      --accent-light: #EFE5D3;
+      --border: #E5E0D8;
+    }
+
+    body {
+      font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
+      background: var(--cream);
+      color: var(--dark);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .card {
+      background: var(--warm-white);
+      max-width: 480px;
+      width: 100%;
+      padding: 3.5rem 3rem;
+      text-align: center;
+    }
+
+    .check {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--accent-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 2rem;
+    }
+
+    .check svg {
+      width: 28px;
+      height: 28px;
+      stroke: var(--accent);
+    }
+
+    h1 {
+      font-size: 1.7rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      font-size: 1rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 0.8rem;
+    }
+
+    .divider {
+      width: 40px;
+      height: 1px;
+      background: var(--accent);
+      margin: 1.8rem auto;
+    }
+
+    .home-link {
+      display: inline-block;
+      margin-top: 1.5rem;
+      padding: 0.9rem 2.5rem;
+      background: var(--dark);
+      color: var(--warm-white);
+      text-decoration: none;
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      transition: background 0.2s;
+    }
+
+    .home-link:hover { background: #333; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="check">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h1>Оплата прошла успешно!</h1>
+    <div class="divider"></div>
+    <p>Спасибо за запись. Специалист свяжется с вами по телефону и e-mail в течение дня.</p>
+    <p>Подтверждение также отправлено специалисту.</p>
+    <a href="/" class="home-link">На главную</a>
+  </div>
+</body>
+</html>

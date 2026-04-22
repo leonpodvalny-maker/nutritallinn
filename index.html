@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Консультация по питанию</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream: #FAF7F2;
+      --warm-white: #FDFCFA;
+      --dark: #1C1C1A;
+      --muted: #6B6860;
+      --accent: #C8A96E;
+      --accent-light: #EFE5D3;
+      --border: #E5E0D8;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
+      background: var(--warm-white);
+      color: var(--dark);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(253, 252, 250, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 5vw;
+      min-height: 72px;
+    }
+
+    .nav-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.25rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      color: var(--dark);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 0.82rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--dark); }
+
+    .nav-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.25rem;
+      padding: 0.6rem 0;
+    }
+
+    .nav-contacts {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.15rem;
+    }
+
+    .nav-contacts span,
+    .nav-contacts a {
+      font-size: 0.82rem;
+      letter-spacing: 0.03em;
+      line-height: 1.4;
+    }
+
+    .nav-contacts span {
+      color: var(--dark);
+    }
+
+    .nav-contacts a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-contacts a:hover { color: var(--dark); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 6rem 5vw 4rem;
+      background: var(--cream);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 100%, rgba(200, 169, 110, 0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 20% 20%, rgba(200, 169, 110, 0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      font-size: 0.72rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2.8rem, 7vw, 5.5rem);
+      font-weight: 300;
+      line-height: 1.15;
+      color: var(--dark);
+      max-width: 800px;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .hero-sub {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 520px;
+      margin-bottom: 3rem;
+      font-weight: 300;
+    }
+
+    .btn-primary {
+      display: inline-block;
+      padding: 1rem 2.8rem;
+      background: var(--dark);
+      color: var(--warm-white);
+      text-decoration: none;
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      border: 1px solid var(--dark);
+      transition: background 0.25s, color 0.25s;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover {
+      background: transparent;
+      color: var(--dark);
+    }
+
+
+    /* ── SECTION WRAPPER ── */
+    section { padding: 7rem 5vw; }
+
+    .section-eyebrow {
+      font-size: 0.7rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      font-weight: 400;
+      line-height: 1.2;
+      margin-bottom: 1.2rem;
+    }
+
+    .section-lead {
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 560px;
+      font-weight: 300;
+    }
+
+    .divider {
+      width: 48px;
+      height: 1px;
+      background: var(--accent);
+      margin: 2rem 0;
+    }
+
+    /* ── CARDS ── */
+    .cards-section {
+      background: var(--cream);
+    }
+
+    .cards-header {
+      max-width: 1100px;
+      margin: 0 auto 4rem;
+    }
+
+    .cards-grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 2px;
+    }
+
+    .card {
+      background: var(--warm-white);
+      padding: 3.5rem 3rem;
+      position: relative;
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover { transform: translateY(-4px); }
+
+    .card-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent-light);
+      padding: 0.35rem 0.9rem;
+      margin-bottom: 2rem;
+    }
+
+    .card-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.9rem;
+      font-weight: 400;
+      line-height: 1.2;
+      margin-bottom: 0.6rem;
+    }
+
+    .card-subtitle {
+      font-size: 0.88rem;
+      color: var(--muted);
+      font-style: italic;
+      margin-bottom: 2rem;
+    }
+
+    .card-divider {
+      width: 32px;
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 2rem;
+    }
+
+    .card-list {
+      list-style: none;
+      margin-bottom: 2.5rem;
+    }
+
+    .card-list li {
+      padding: 0.55rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.92rem;
+      color: var(--dark);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7rem;
+    }
+
+    .card-list li::before {
+      content: '—';
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 0.05em;
+    }
+
+    .card-price {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2.8rem;
+      font-weight: 300;
+      color: var(--dark);
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: baseline;
+      gap: 0.3rem;
+    }
+
+    .card-price span {
+      font-size: 1.1rem;
+      font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
+      color: var(--muted);
+    }
+
+    .card .btn-primary {
+      width: 100%;
+      text-align: center;
+    }
+
+    /* ── VALUES ── */
+    .values-section {
+      background: var(--dark);
+      color: var(--warm-white);
+    }
+
+    .values-section .section-title { color: var(--warm-white); }
+    .values-section .section-lead { color: rgba(253,252,250,0.55); }
+    .values-section .divider { background: var(--accent); }
+    .values-section .section-eyebrow { color: var(--accent); }
+
+    .values-grid {
+      max-width: 1100px;
+      margin: 4rem auto 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 3rem 2rem;
+    }
+
+    .value-item {}
+
+    .value-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 3.5rem;
+      font-weight: 300;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 1rem;
+    }
+
+    .value-title {
+      font-size: 0.78rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--warm-white);
+      margin-bottom: 0.7rem;
+    }
+
+    .value-desc {
+      font-size: 0.88rem;
+      color: rgba(253,252,250,0.5);
+      font-weight: 300;
+      line-height: 1.6;
+    }
+
+    /* ── PROCESS ── */
+    .process-section {
+      background: var(--warm-white);
+    }
+
+    .process-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6rem;
+      align-items: start;
+    }
+
+    .process-steps { margin-top: 3rem; }
+
+    .step {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .step-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2rem;
+      font-weight: 300;
+      color: var(--accent);
+      line-height: 1;
+      flex-shrink: 0;
+      width: 2.5rem;
+    }
+
+    .step-body {}
+    .step-title {
+      font-size: 0.82rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin-bottom: 0.4rem;
+    }
+    .step-desc {
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    .process-image {
+      width: 100%;
+      aspect-ratio: 3/4;
+      object-fit: cover;
+      background: var(--accent-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: sticky;
+      top: 80px;
+      overflow: hidden;
+    }
+
+    .process-image-placeholder {
+      width: 100%;
+      aspect-ratio: 3/4;
+      background: linear-gradient(135deg, var(--accent-light) 0%, #E8D5BA 100%);
+      position: sticky;
+      top: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      color: var(--accent);
+    }
+
+    .process-image-placeholder svg {
+      width: 64px;
+      height: 64px;
+      opacity: 0.4;
+    }
+
+    .process-image-placeholder p {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.1rem;
+      color: var(--accent);
+      opacity: 0.5;
+      font-style: italic;
+    }
+
+    /* ── QUOTE ── */
+    .quote-section {
+      background: var(--accent-light);
+      text-align: center;
+      padding: 6rem 5vw;
+    }
+
+    blockquote {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.6rem, 3.5vw, 2.6rem);
+      font-weight: 300;
+      line-height: 1.35;
+      color: var(--dark);
+      max-width: 760px;
+      margin: 0 auto 1.5rem;
+      font-style: italic;
+    }
+
+    cite {
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-style: normal;
+    }
+
+    /* ── CTA ── */
+    .cta-section {
+      background: var(--cream);
+      text-align: center;
+    }
+
+    .cta-inner {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .cta-inner .section-title { margin-bottom: 1rem; }
+    .cta-inner .section-lead { margin: 0 auto 2.5rem; }
+
+    .btn-outline {
+      display: inline-block;
+      padding: 1rem 2.8rem;
+      background: transparent;
+      color: var(--dark);
+      text-decoration: none;
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      border: 1px solid var(--dark);
+      transition: background 0.25s, color 0.25s;
+      margin-left: 1rem;
+    }
+
+    .btn-outline:hover {
+      background: var(--dark);
+      color: var(--warm-white);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 3rem 5vw;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.1rem;
+      color: var(--dark);
+    }
+
+    .footer-copy {
+      font-size: 0.78rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .footer-links a {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.08em;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--dark); }
+
+    .social-icon-link {
+      display: inline-flex;
+      transition: transform 0.2s, opacity 0.2s;
+      opacity: 0.9;
+    }
+
+    .social-icon-link:hover {
+      transform: translateY(-3px);
+      opacity: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: 0 4vw; }
+      .nav-links { display: none; }
+      section { padding: 5rem 6vw; }
+      .process-inner { grid-template-columns: 1fr; gap: 3rem; }
+      .process-image-placeholder { position: static; aspect-ratio: 4/3; }
+      .cards-grid { grid-template-columns: 1fr; }
+      .card { padding: 2.5rem 2rem; }
+      footer { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">Нутрициолог</a>
+  <div class="nav-right">
+    <ul class="nav-links">
+      <li><a href="#contact">Контакт</a></li>
+    </ul>
+    <div class="nav-contacts">
+      <span>+372 55 43 213</span>
+      <a href="mailto:jelena.tsumakova@gmail.com">jelena.tsumakova@gmail.com</a>
+    </div>
+  </div>
+</nav>
+
+<!-- CARDS -->
+<section class="cards-section" id="services">
+  <div class="cards-header">
+    <p class="section-eyebrow">Форматы работы</p>
+    <h2 class="section-title">Выберите,<br>что вам подходит</h2>
+    <div class="divider"></div>
+    <p class="section-lead">Пожалуйста, проверяйте свои данные при покупке консультации — специалист свяжется с вами по указанным контактам.</p>
+  </div>
+
+  <div class="cards-grid">
+
+    <!-- Card 1 -->
+    <div class="card">
+      <div class="card-tag">Разовая</div>
+      <h3 class="card-title">Консультация<br>по питанию</h3>
+      <p class="card-subtitle">Глубокий разбор рациона за одну встречу</p>
+      <div class="card-divider"></div>
+      <ul class="card-list">
+        <li>Заполнение анкеты</li>
+        <li>Разбор рациона на основе дневника питания (≈ 3 дня до консультации)</li>
+        <li>Определение цели</li>
+        <li>Выявление препятствий</li>
+        <li>Расчёт дневного калоража с учётом активности и целей</li>
+        <li>Корректировка рациона: макро- и микронутриенты</li>
+        <li>План действий на определённый срок</li>
+      </ul>
+      <div class="card-price">50 <span>€</span></div>
+      <a href="/order?plan=50" class="btn-primary">Записаться</a>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="card" style="background: var(--dark); color: var(--warm-white);">
+      <div class="card-tag" style="border-color: rgba(200,169,110,0.4);">Месяц поддержки</div>
+      <h3 class="card-title" style="color: var(--warm-white);">Месячное<br>ведение</h3>
+      <p class="card-subtitle" style="color: rgba(253,252,250,0.5);">4 недели — полная поддержка и сопровождение</p>
+      <div class="card-divider" style="background: rgba(253,252,250,0.15);"></div>
+      <ul class="card-list">
+        <li style="border-color: rgba(255,255,255,0.1); color: var(--warm-white);">Объёмная анкета + консультация</li>
+        <li style="border-color: rgba(255,255,255,0.1); color: var(--warm-white);">Связь с нутрициологом в WhatsApp / Telegram пн–сб на протяжении 4 недель</li>
+        <li style="border-color: rgba(255,255,255,0.1); color: var(--warm-white);">Созвон раз в 2 недели для корректировки действий</li>
+        <li style="border-color: rgba(255,255,255,0.1); color: var(--warm-white);">Финальный созвон и подведение итогов</li>
+        <li style="border-color: rgba(255,255,255,0.1); color: var(--warm-white);">Список продуктов для сбалансированного рациона</li>
+        <li style="border-color: rgba(255,255,255,0.1); color: var(--warm-white);">Лёгкие рецепты при необходимости</li>
+        <li style="border-color: rgba(255,255,255,0.1); color: var(--warm-white);">Поддержка на протяжении всего времени</li>
+      </ul>
+      <div class="card-price" style="color: var(--warm-white);">175 <span style="color: rgba(253,252,250,0.45);">€</span></div>
+      <a href="/order?plan=175" class="btn-primary" style="background: var(--accent); border-color: var(--accent); color: var(--dark);">Записаться</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- VALUES -->
+<section class="values-section">
+  <div style="max-width: 1100px; margin: 0 auto;">
+    <p class="section-eyebrow">Мой подход</p>
+    <h2 class="section-title">Почему это работает</h2>
+    <div class="divider"></div>
+    <p class="section-lead">Никаких жёстких запретов — только понимание своего тела и устойчивые привычки.</p>
+
+    <div class="values-grid">
+      <div class="value-item">
+        <div class="value-num">01</div>
+        <div class="value-title">Индивидуально</div>
+        <p class="value-desc">Рацион рассчитывается под ваши цели, образ жизни и активность — не шаблон.</p>
+      </div>
+      <div class="value-item">
+        <div class="value-num">02</div>
+        <div class="value-title">Без голодовок</div>
+        <p class="value-desc">Сытные, вкусные блюда. Баланс достигается через состав, а не через ограничение еды.</p>
+      </div>
+      <div class="value-item">
+        <div class="value-num">03</div>
+        <div class="value-title">С поддержкой</div>
+        <p class="value-desc">Я на связи: вопрос не ждёт до следующей встречи, ответ приходит быстро.</p>
+      </div>
+      <div class="value-item">
+        <div class="value-num">04</div>
+        <div class="value-title">Устойчиво</div>
+        <p class="value-desc">Цель — не дожить до конца программы, а встроить полезные привычки в жизнь.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section class="process-section" id="process">
+  <div class="process-inner">
+    <div>
+      <p class="section-eyebrow">Как мы работаем</p>
+      <h2 class="section-title">Шаги<br>к результату</h2>
+      <div class="divider"></div>
+      <p class="section-lead">Простой и прозрачный процесс — вы всегда знаете, что происходит и что дальше.</p>
+
+      <div class="process-steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Анкета</div>
+            <p class="step-desc">Заполняете анкету о своём образе жизни, здоровье и целях.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Дневник питания</div>
+            <p class="step-desc">Ведёте дневник питания 2–3 дня до консультации.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Консультация</div>
+            <p class="step-desc">Разбираем рацион, определяем цели, выявляем препятствия.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">План и поддержка</div>
+            <p class="step-desc">Получаете план питания и поддержку на всём пути.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="process-image-placeholder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+        <path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7z"/>
+        <circle cx="12" cy="9" r="2.5"/>
+      </svg>
+      <p>Ваше фото здесь</p>
+    </div>
+  </div>
+</section>
+
+<!-- QUOTE -->
+<section class="quote-section">
+  <blockquote>
+    «Еда — это не враг и не награда.<br>Это просто топливо, которое должно быть вкусным.»
+  </blockquote>
+  <cite>— Нутрициолог</cite>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="contact">
+  <div class="cta-inner">
+    <p class="section-eyebrow">Начнём?</p>
+    <h2 class="section-title">Записаться<br>на консультацию</h2>
+    <div class="divider" style="margin: 1.5rem auto 1.5rem;"></div>
+    <p class="section-lead">Выберите формат, который вам подходит, и оставьте контакт — я свяжусь с вами в течение дня.</p>
+    <div style="margin-top: 2.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+      <a href="mailto:jelena.tsumakova@gmail.com" class="btn-primary">Написать на почту</a>
+      <a href="https://wa.me/3725543213" class="btn-outline">WhatsApp</a>
+      <a href="https://t.me/+3725543213" class="btn-outline">Telegram</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Нутрициолог</div>
+  <div class="footer-links">
+    <a href="https://www.instagram.com/fitfoodestonia/" target="_blank" aria-label="Instagram" class="social-icon-link">
+      <svg width="36" height="36" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="ig-grad" cx="30%" cy="107%" r="120%">
+            <stop offset="0%" stop-color="#fdf497"/>
+            <stop offset="10%" stop-color="#fdf497"/>
+            <stop offset="25%" stop-color="#fd5949"/>
+            <stop offset="50%" stop-color="#d6249f"/>
+            <stop offset="75%" stop-color="#285AEB"/>
+          </radialGradient>
+        </defs>
+        <rect width="48" height="48" rx="12" fill="url(#ig-grad)"/>
+        <rect x="12" y="12" width="24" height="24" rx="6" fill="none" stroke="white" stroke-width="2.5"/>
+        <circle cx="24" cy="24" r="6" fill="none" stroke="white" stroke-width="2.5"/>
+        <circle cx="31.5" cy="16.5" r="1.5" fill="white"/>
+      </svg>
+    </a>
+    <a href="https://www.facebook.com/fitfoodestonia" target="_blank" aria-label="Facebook" class="social-icon-link">
+      <svg width="36" height="36" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <rect width="48" height="48" rx="12" fill="#1877F2"/>
+        <path d="M28 14h-3a5 5 0 00-5 5v3h-3v4h3v10h4V26h3l1-4h-4v-3a1 1 0 011-1h3v-4z" fill="white"/>
+      </svg>
+    </a>
+  </div>
+  <p class="footer-copy">© 2025</p>
+</footer>
+
+</body>
+</html>
