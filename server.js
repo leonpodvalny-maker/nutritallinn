@@ -8,6 +8,7 @@ const helmet  = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 const app    = express();
+app.set('trust proxy', 1);
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const RECIPIENT_EMAIL = process.env.RECIPIENT_EMAIL;
