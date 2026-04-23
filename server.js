@@ -116,6 +116,7 @@ function validateOrderFields(body) {
 // ── Static pages ─────────────────────────────────────────────────────────────
 
 app.get('/favicon.svg', (req, res) => res.sendFile(path.join(__dirname, 'favicon.svg')));
+app.get('/google883fa7bb0c4c9d21.html', (req, res) => res.send('google-site-verification: google883fa7bb0c4c9d21.html'));
 
 app.get('/robots.txt', (req, res) => {
   res.type('text/plain');
