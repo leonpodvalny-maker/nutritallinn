@@ -103,46 +103,48 @@ function escHtml(str) {
 
 function validateOrderFields(body) {
   const { name, surname, age, phone, email, plan } = body;
-  if (!VALID_PLANS.has(plan)) { console.warn('Validation fail: plan =', JSON.stringify(plan)); return 'Invalid plan'; }
-  if (!name || typeof name !== 'string' || name.trim().length < 1 || name.length > 100) { console.warn('Validation fail: name =', JSON.stringify(name)); return 'Invalid name'; }
-  if (!surname || typeof surname !== 'string' || surname.trim().length < 1 || surname.length > 100) { console.warn('Validation fail: surname =', JSON.stringify(surname)); return 'Invalid surname'; }
+  if (!VALID_PLANS.has(plan)) { console.warn('Validation fail: field=plan'); return 'Invalid plan'; }
+  if (!name || typeof name !== 'string' || name.trim().length < 1 || name.length > 100) { console.warn('Validation fail: field=name'); return 'Invalid name'; }
+  if (!surname || typeof surname !== 'string' || surname.trim().length < 1 || surname.length > 100) { console.warn('Validation fail: field=surname'); return 'Invalid surname'; }
   const ageNum = parseInt(age, 10);
-  if (isNaN(ageNum) || ageNum < 16 || ageNum > 99) { console.warn('Validation fail: age =', JSON.stringify(age)); return 'Invalid age'; }
-  if (!phone || typeof phone !== 'string' || phone.length > 30) { console.warn('Validation fail: phone =', JSON.stringify(phone)); return 'Invalid phone'; }
-  if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) { console.warn('Validation fail: email =', JSON.stringify(email)); return 'Invalid email'; }
+  if (isNaN(ageNum) || ageNum < 16 || ageNum > 99) { console.warn('Validation fail: field=age'); return 'Invalid age'; }
+  if (!phone || typeof phone !== 'string' || phone.length > 30) { console.warn('Validation fail: field=phone'); return 'Invalid phone'; }
+  if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) { console.warn('Validation fail: field=email'); return 'Invalid email'; }
   return null;
 }
 
 // ── Static pages ─────────────────────────────────────────────────────────────
 
+app.get('/favicon.svg', (req, res) => res.sendFile(path.join(__dirname, 'favicon.svg')));
 app.get('/',        (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/order',   (req, res) => res.sendFile(path.join(__dirname, 'order.html')));
 app.get('/error',   (req, res) => res.sendFile(path.join(__dirname, 'error.html')));
 app.get('/success', async (req, res) => {
-  const { demo, name, surname, age, phone, email, plan, orderId } = req.query;
+  const { demo, orderId } = req.query;
 
   // Demo mode only allowed when payment keys are not configured
   const keysConfigured = !!(process.env.MAKSEKESKUS_SHOP_ID && process.env.MAKSEKESKUS_SECRET_KEY);
-  if (demo === '1' && !keysConfigured) {
-    if (!VALID_PLANS.has(plan)) return res.redirect('/');
-    const planName = plan === '175' ? 'Месячное ведение (4 недели)' : 'Консультация по питанию';
-    const safeOrder = {
-      name:     String(name || '').slice(0, 100),
-      surname:  String(surname || '').slice(0, 100),
-      age:      String(age || '').slice(0, 3),
-      phone:    String(phone || '').slice(0, 30),
-      email:    String(email || '').slice(0, 200),
-      planName,
-      amount:   plan,
-    };
-    await sendEmail(safeOrder, String(orderId || '').slice(0, 50));
+  if (demo === '1' && !keysConfigured && orderId) {
+    const order = pendingOrders[orderId];
+    if (order) {
+      await sendEmail(order, orderId);
+      delete pendingOrders[orderId];
+    }
   }
   res.sendFile(path.join(__dirname, 'success.html'));
 });
 
 // ── Checkout: form → Maksekeskus transaction ──────────────────────────────────
 
-app.post('/api/checkout', checkoutLimiter, async (req, res) => {
+app.post('/api/checkout', checkoutLimiter, (req, res, next) => {
+  const siteUrl  = process.env.SITE_URL || 'http://localhost:3000';
+  const origin   = req.headers['origin'] || '';
+  const referer  = req.headers['referer'] || '';
+  const allowed  = new URL(siteUrl).origin;
+  if (origin && origin !== allowed) return res.redirect(`/order?plan=50&error=1`);
+  if (!origin && referer && !referer.startsWith(allowed)) return res.redirect(`/order?plan=50&error=1`);
+  next();
+}, async (req, res) => {
   const validationError = validateOrderFields(req.body);
   if (validationError) {
     const plan = req.body.plan && VALID_PLANS.has(req.body.plan) ? req.body.plan : '50';
@@ -160,8 +162,8 @@ app.post('/api/checkout', checkoutLimiter, async (req, res) => {
 
   // Demo mode if keys not set
   if (!process.env.MAKSEKESKUS_SHOP_ID || !process.env.MAKSEKESKUS_SECRET_KEY) {
-    const params = new URLSearchParams({ name, surname, age, phone, email, plan, orderId, demo: '1' });
-    return res.redirect(`/success?${params}`);
+    storePendingOrder(orderId, { name, surname, age, phone, email, plan, planName, amount });
+    return res.redirect(`/success?demo=1&orderId=${encodeURIComponent(orderId)}`);
   }
 
   try {
@@ -203,7 +205,15 @@ app.post('/api/checkout', checkoutLimiter, async (req, res) => {
     console.log('Payment methods:', JSON.stringify(txResponse.data.payment_methods));
 
     const redirectMethod = (txResponse.data.payment_methods?.other || []).find(m => m.name === 'redirect');
-    const paymentUrl = redirectMethod?.url || `https://payment.maksekeskus.ee/pay.html?trx=${txId}`;
+    const rawPaymentUrl = redirectMethod?.url || `https://payment.maksekeskus.ee/pay.html?trx=${txId}`;
+    const allowedHost = 'payment.maksekeskus.ee';
+    let paymentUrl;
+    try {
+      const parsed = new URL(rawPaymentUrl);
+      paymentUrl = parsed.hostname === allowedHost ? rawPaymentUrl : `https://payment.maksekeskus.ee/pay.html?trx=${txId}`;
+    } catch {
+      paymentUrl = `https://payment.maksekeskus.ee/pay.html?trx=${txId}`;
+    }
     console.log('Redirecting to:', paymentUrl);
 
     storePendingOrder(orderId, { name, surname, age, phone, email, plan, planName, amount });
