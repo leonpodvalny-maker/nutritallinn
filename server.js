@@ -136,15 +136,7 @@ app.get('/success', async (req, res) => {
 
 // ── Checkout: form → Maksekeskus transaction ──────────────────────────────────
 
-app.post('/api/checkout', checkoutLimiter, (req, res, next) => {
-  const siteUrl  = process.env.SITE_URL || 'http://localhost:3000';
-  const origin   = req.headers['origin'] || '';
-  const referer  = req.headers['referer'] || '';
-  const allowed  = new URL(siteUrl).origin;
-  if (origin && origin !== allowed) return res.redirect(`/order?plan=50&error=1`);
-  if (!origin && referer && !referer.startsWith(allowed)) return res.redirect(`/order?plan=50&error=1`);
-  next();
-}, async (req, res) => {
+app.post('/api/checkout', checkoutLimiter, async (req, res) => {
   const validationError = validateOrderFields(req.body);
   if (validationError) {
     const plan = req.body.plan && VALID_PLANS.has(req.body.plan) ? req.body.plan : '50';
