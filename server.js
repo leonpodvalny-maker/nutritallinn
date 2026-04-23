@@ -132,16 +132,7 @@ app.get('/robots.txt', (req, res) => {
   );
 });
 
-app.get('/sitemap.xml', (req, res) => {
-  const base = process.env.SITE_URL || 'https://nutritallinn.onrender.com';
-  res.type('application/xml');
-  res.send(
-    '<?xml version="1.0" encoding="UTF-8"?>\n' +
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-    `  <url><loc>${base}/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>\n` +
-    '</urlset>\n'
-  );
-});
+app.get('/sitemap.xml', (req, res) => res.sendFile(path.join(__dirname, 'sitemap.xml')));
 app.get('/',        (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/order',   (req, res) => res.sendFile(path.join(__dirname, 'order.html')));
 app.get('/error',   (req, res) => res.sendFile(path.join(__dirname, 'error.html')));
