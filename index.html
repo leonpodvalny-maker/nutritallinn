@@ -159,16 +159,15 @@
 
     /* ── HERO ── */
     .hero {
-      min-height: 90vh;
-      display: flex;
-      flex-direction: column;
+      min-height: 92vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 6rem 5vw 4rem;
+      padding: 0 5vw;
       background: var(--cream);
       position: relative;
       overflow: hidden;
+      gap: 4rem;
     }
 
     .hero::before {
@@ -178,6 +177,35 @@
       background:
         radial-gradient(ellipse 60% 50% at 50% 100%, rgba(200, 169, 110, 0.12) 0%, transparent 70%),
         radial-gradient(ellipse 40% 30% at 20% 20%, rgba(200, 169, 110, 0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      padding: 6rem 0 4rem;
+    }
+
+    .hero-photo {
+      position: relative;
+      height: 100%;
+      min-height: 92vh;
+      overflow: hidden;
+    }
+
+    .hero-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+    }
+
+    .hero-photo::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right, var(--cream) 0%, transparent 20%);
       pointer-events: none;
     }
 
@@ -191,11 +219,11 @@
 
     .hero h1 {
       font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(2.8rem, 7vw, 5.5rem);
+      font-size: clamp(2.8rem, 5vw, 5rem);
       font-weight: 300;
       line-height: 1.15;
       color: var(--dark);
-      max-width: 800px;
+      max-width: 560px;
       margin-bottom: 1.5rem;
     }
 
@@ -207,7 +235,7 @@
     .hero-sub {
       font-size: 1.05rem;
       color: var(--muted);
-      max-width: 520px;
+      max-width: 440px;
       margin-bottom: 3rem;
       font-weight: 300;
     }
@@ -464,41 +492,10 @@
       width: 100%;
       aspect-ratio: 3/4;
       object-fit: cover;
-      background: var(--accent-light);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      object-position: center top;
       position: sticky;
       top: 80px;
-      overflow: hidden;
-    }
-
-    .process-image-placeholder {
-      width: 100%;
-      aspect-ratio: 3/4;
-      background: linear-gradient(135deg, var(--accent-light) 0%, #E8D5BA 100%);
-      position: sticky;
-      top: 80px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1rem;
-      color: var(--accent);
-    }
-
-    .process-image-placeholder svg {
-      width: 64px;
-      height: 64px;
-      opacity: 0.4;
-    }
-
-    .process-image-placeholder p {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.1rem;
-      color: var(--accent);
-      opacity: 0.5;
-      font-style: italic;
+      display: block;
     }
 
     /* ── QUOTE ── */
@@ -506,6 +503,17 @@
       background: var(--accent-light);
       text-align: center;
       padding: 6rem 5vw;
+    }
+
+    .quote-avatar {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: center top;
+      margin: 0 auto 2rem;
+      display: block;
+      border: 2px solid rgba(200,169,110,0.35);
     }
 
     blockquote {
@@ -680,8 +688,23 @@
       .nav-contacts { display: none; }
       .burger { display: flex; }
       section { padding: 5rem 6vw; }
+      .hero {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        padding-top: 0;
+        gap: 0;
+      }
+      .hero-photo {
+        order: -1;
+        min-height: 55vw;
+        height: 70vw;
+      }
+      .hero-photo::after {
+        background: linear-gradient(to bottom, transparent 60%, var(--cream) 100%);
+      }
+      .hero-content { padding: 2.5rem 6vw 4rem; }
       .process-inner { grid-template-columns: 1fr; gap: 3rem; }
-      .process-image-placeholder { position: static; aspect-ratio: 4/3; }
+      .process-image { position: static; aspect-ratio: 4/3; }
       .cards-grid { grid-template-columns: 1fr; }
       .card { padding: 2.5rem 2rem; }
       footer { flex-direction: column; text-align: center; }
@@ -693,6 +716,7 @@
 <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">Нутрициолог в Таллине — индивидуальные консультации по питанию</h1>
 
 <!-- NAV -->
+
 <nav>
   <a href="#" class="nav-logo">Нутрициолог</a>
   <div class="nav-right">
@@ -719,6 +743,21 @@
     <a href="mailto:jelena.tsumakova@gmail.com">jelena.tsumakova@gmail.com</a>
   </div>
 </div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-content">
+    <p class="hero-eyebrow">Нутрициолог в Таллине</p>
+    <h2 class="hero h1" style="font-family:'Cormorant Garamond',serif;font-size:clamp(2.8rem,5vw,5rem);font-weight:300;line-height:1.15;color:var(--dark);max-width:560px;margin-bottom:1.5rem;">
+      Питание,<br>которое работает<br><em style="font-style:italic;color:var(--accent);">именно для вас</em>
+    </h2>
+    <p class="hero-sub">Индивидуальные консультации по питанию — без жёстких диет, с реальным результатом.</p>
+    <a href="#services" class="btn-primary">Выбрать формат</a>
+  </div>
+  <div class="hero-photo">
+    <img src="/IMG-20260502-WA0003.jpg" alt="Нутрициолог Елена — консультация по питанию в Таллине" />
+  </div>
+</section>
 
 <!-- CARDS -->
 <section class="cards-section" id="services">
@@ -846,19 +885,13 @@
       </div>
     </div>
 
-    <div class="process-image-placeholder">
-      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" width="72" height="72" opacity="0.35">
-        <circle cx="40" cy="40" r="38" stroke="#C8A96E" stroke-width="1"/>
-        <path d="M40 18 C28 28, 20 36, 22 50 C24 62, 36 66, 40 62 C44 66, 56 62, 58 50 C60 36, 52 28, 40 18Z" stroke="#C8A96E" stroke-width="1" fill="none"/>
-        <path d="M40 18 C40 30, 40 46, 40 62" stroke="#C8A96E" stroke-width="1"/>
-        <path d="M22 50 C30 46, 50 46, 58 50" stroke="#C8A96E" stroke-width="1"/>
-      </svg>
-    </div>
+    <img class="process-image" src="/IMG-20260502-WA0007.jpg" alt="Нутрициолог на консультации" />
   </div>
 </section>
 
 <!-- QUOTE -->
 <section class="quote-section">
+  <img class="quote-avatar" src="/IMG-20260502-WA0014.jpg" alt="Нутрициолог Елена" />
   <blockquote>
     «Еда — это не враг и не награда.<br>Это просто топливо, которое должно быть вкусным.»
   </blockquote>
