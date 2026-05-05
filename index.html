@@ -789,6 +789,85 @@
       color: var(--accent);
     }
 
+    /* ── ABOUT ── */
+    .about-section {
+      background: var(--warm-white);
+    }
+
+    .about-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6rem;
+      align-items: center;
+    }
+
+    .about-photo {
+      position: relative;
+    }
+
+    .about-photo img {
+      width: 100%;
+      aspect-ratio: 3/4;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+    }
+
+    .about-photo::before {
+      content: '';
+      position: absolute;
+      inset: -1.5rem 0 0 -1.5rem;
+      border: 1px solid var(--accent-light);
+      z-index: -1;
+    }
+
+    .about-content {}
+
+    .about-lead {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.3rem, 2vw, 1.7rem);
+      font-weight: 300;
+      line-height: 1.5;
+      color: var(--dark);
+      margin-bottom: 1.5rem;
+      font-style: italic;
+    }
+
+    .about-text {
+      font-size: 0.95rem;
+      color: var(--muted);
+      font-weight: 300;
+      line-height: 1.8;
+      margin-bottom: 1.2rem;
+    }
+
+    .about-facts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem 2rem;
+      margin-top: 2.5rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .about-fact-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2.2rem;
+      font-weight: 300;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 0.3rem;
+    }
+
+    .about-fact-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
     /* ── FAQ ── */
     .faq-section {
       background: var(--warm-white);
@@ -873,6 +952,10 @@
         background: linear-gradient(to bottom, transparent 60%, var(--cream) 100%);
       }
       .hero-content { padding: 2.5rem 6vw 4rem; }
+      .about-inner { grid-template-columns: 1fr; gap: 3rem; }
+      .about-photo::before { display: none; }
+      .about-photo img { aspect-ratio: 4/3; }
+      .about-facts { grid-template-columns: 1fr 1fr; }
       .process-inner { grid-template-columns: 1fr; gap: 3rem; }
       .process-image { position: static; aspect-ratio: 4/3; object-position: center center; }
       .faq-inner { grid-template-columns: 1fr; gap: 1rem; }
@@ -891,6 +974,7 @@
   <a href="#" class="nav-logo">Нутрициолог</a>
   <div class="nav-right">
     <ul class="nav-links">
+      <li><a href="#about">О себе</a></li>
       <li><a href="#services">Услуги</a></li>
       <li><a href="#process">Как работаем</a></li>
       <li><a href="#faq">Вопросы</a></li>
@@ -908,8 +992,10 @@
 
 <!-- MOBILE MENU -->
 <div class="mobile-menu" id="mobileMenu">
+  <a href="#about">О себе</a>
   <a href="#services" id="mobileServices">Услуги</a>
-  <a href="#process" id="mobileProcess">Как это работает</a>
+  <a href="#process" id="mobileProcess">Как работаем</a>
+  <a href="#faq">Вопросы</a>
   <a href="#contact" id="mobileContact">Контакт</a>
   <div class="mobile-contacts">
     <a href="tel:+3725543213">+372 55 43 213</a>
@@ -932,6 +1018,44 @@
       <source srcset="/photo-hero.webp" type="image/webp" />
       <img src="/IMG-20260502-WA0003.jpg" alt="Елена Подвальная — нутрициолог в Таллине" fetchpriority="high" />
     </picture>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="about-section" id="about">
+  <div class="about-inner">
+    <div class="about-photo">
+      <picture>
+        <source srcset="/photo-hero.webp" type="image/webp" />
+        <img src="/IMG-20260502-WA0003.jpg" alt="Елена Подвальная — нутрициолог в Таллине" loading="lazy" />
+      </picture>
+    </div>
+    <div class="about-content">
+      <p class="section-eyebrow">О себе</p>
+      <h2 class="section-title">Елена Подвальная</h2>
+      <div class="divider"></div>
+      <p class="about-lead">«Здесь будет ваша цитата или главная мысль о себе.»</p>
+      <p class="about-text">Здесь расскажите о себе: образование, путь в нутрициологию, что вас вдохновляет в этой работе.</p>
+      <p class="about-text">Второй абзац: специализация, с кем работаете, какой подход используете.</p>
+      <div class="about-facts">
+        <div>
+          <div class="about-fact-num">—</div>
+          <div class="about-fact-label">лет опыта</div>
+        </div>
+        <div>
+          <div class="about-fact-num">—</div>
+          <div class="about-fact-label">клиентов</div>
+        </div>
+        <div>
+          <div class="about-fact-num">—</div>
+          <div class="about-fact-label">сертификат / курс</div>
+        </div>
+        <div>
+          <div class="about-fact-num">—</div>
+          <div class="about-fact-label">специализация</div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
