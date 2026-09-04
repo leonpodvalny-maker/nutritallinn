@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Запись на консультацию — Nutritallinn</title>
-  <meta name="description" content="Запишитесь на консультацию по питанию онлайн. Укажите контактные данные — специалист свяжется с вами в течение дня." />
+  <title>Анкета — Nutritallinn</title>
+  <meta name="description" content="Заполните анкету, и нутрициолог свяжется с вами в течение дня." />
   <meta name="robots" content="noindex, nofollow" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/form.css" />
@@ -18,20 +18,15 @@
 
 <main>
   <div class="form-card">
-    <div id="cancelledMsg" class="cancelled-msg" style="display:none;">
-      Оплата была отменена. Попробуйте ещё раз.
-    </div>
     <div id="errorMsg" class="cancelled-msg" style="display:none;">
-      Неверные данные. Пожалуйста, проверьте форму и попробуйте ещё раз.
+      Не удалось отправить анкету. Проверьте поля и попробуйте ещё раз.
     </div>
 
-    <div class="plan-badge" id="planBadge">Загрузка...</div>
-    <h1 id="planTitle">Консультация</h1>
-    <div class="plan-price" id="planPrice">—</div>
+    <div class="plan-badge">Анкета</div>
+    <h1>Расскажите о себе</h1>
     <div class="divider"></div>
 
-    <form id="orderForm" method="POST" action="/api/checkout">
-      <input type="hidden" name="plan" id="planInput" value="" />
+    <form id="surveyForm" method="POST" action="/api/survey">
 
       <div class="form-row">
         <div class="form-group">
@@ -59,60 +54,39 @@
         <input type="email" id="email" name="email" placeholder="maria@gmail.com" required />
       </div>
 
-      <div class="form-group" id="goalGroup" hidden>
+      <div class="form-group">
         <label for="goal">Ожидаемый результат</label>
         <textarea id="goal" name="goal" maxlength="1000"
                   placeholder="Чего вы хотите достичь? Например: снизить вес, наладить питание, разобраться с нехваткой энергии."></textarea>
       </div>
 
-      <div class="form-group" id="expectationsGroup" hidden>
+      <div class="form-group">
         <label for="expectations">Ожидания от работы со мной</label>
         <textarea id="expectations" name="expectations" maxlength="1000"
                   placeholder="Что для вас важно в совместной работе? Например: поддержка и обратная связь, чёткий план, объяснения без давления."></textarea>
       </div>
 
       <button type="submit" class="submit-btn" id="submitBtn">
-        Перейти к оплате
+        Послать
       </button>
     </form>
 
     <p class="notice">
-      После оплаты специалист свяжется с вами по телефону и e-mail в течение дня.
+      Анкета ни к чему не обязывает. Специалист свяжется с вами по телефону или e-mail в течение дня.
     </p>
   </div>
 </main>
 
 <script>
-  const params = new URLSearchParams(window.location.search);
-  // Keep in sync with PLANS in server.js — the server validates the price anyway.
-  const PLANS = {
-    '100': { badge: 'Разовая',   title: 'Консультация по питанию' },
-    '75':  { badge: 'Повторная', title: 'Повторная консультация' },
-    '150': { badge: 'Рацион',    title: 'Индивидуальный рацион на 7 дней' },
-  };
-  const plan = PLANS[params.get('plan')] ? params.get('plan') : '100';
-
-  document.getElementById('planInput').value = plan;
-  document.getElementById('planBadge').textContent = PLANS[plan].badge;
-  document.getElementById('planTitle').textContent = PLANS[plan].title;
-  document.getElementById('planPrice').textContent = plan + ' €';
-  // The follow-up consultation builds on an existing plan, so it does not ask this.
-  const isFollowUp = plan === '75';
-  document.getElementById('goalGroup').hidden = isFollowUp;
-  document.getElementById('expectationsGroup').hidden = isFollowUp;
-
-  if (params.get('cancelled') === '1') {
-    document.getElementById('cancelledMsg').style.display = 'block';
-  }
-  if (params.get('error') === '1') {
+  if (new URLSearchParams(window.location.search).get('error') === '1') {
     document.getElementById('errorMsg').style.display = 'block';
   }
 
-  document.getElementById('orderForm').addEventListener('submit', function(e) {
+  document.getElementById('surveyForm').addEventListener('submit', function () {
     if (!this.checkValidity()) return;
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    btn.textContent = 'Переадресация...';
+    btn.textContent = 'Отправляем...';
   });
 </script>
 

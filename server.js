@@ -145,6 +145,8 @@ app.get('/robots.txt', (req, res) => {
     'Disallow: /order\n' +
     'Disallow: /success\n' +
     'Disallow: /error\n' +
+    'Disallow: /survey\n' +
+    'Disallow: /survey-sent\n' +
     'Disallow: /api/\n' +
     'Disallow: /payment-return\n\n' +
     `Sitemap: ${process.env.SITE_URL || 'https://nutritallinn.onrender.com'}/sitemap.xml\n`
@@ -155,6 +157,8 @@ app.get('/sitemap.xml', (req, res) => res.sendFile(path.join(__dirname, 'sitemap
 app.get('/',        (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/order',   (req, res) => res.sendFile(path.join(__dirname, 'order.html')));
 app.get('/error',   (req, res) => res.sendFile(path.join(__dirname, 'error.html')));
+app.get('/survey',  (req, res) => res.sendFile(path.join(__dirname, 'survey.html')));
+app.get('/survey-sent', (req, res) => res.sendFile(path.join(__dirname, 'survey-sent.html')));
 app.get('/success', async (req, res) => {
   const { demo, orderId } = req.query;
 
@@ -168,6 +172,18 @@ app.get('/success', async (req, res) => {
     }
   }
   res.sendFile(path.join(__dirname, 'success.html'));
+});
+
+// ── Survey: no payment, straight to email ────────────────────────────────────
+
+app.post('/api/survey', checkoutLimiter, async (req, res) => {
+  // Reuse the order validation, minus the plan it has no use for.
+  const validationError = validateOrderFields({ ...req.body, plan: DEFAULT_PLAN });
+  if (validationError) return res.redirect('/survey?error=1');
+
+  const { name, surname, age, phone, email, goal, expectations } = req.body;
+  const sent = await sendSurveyEmail({ name, surname, age, phone, email, goal, expectations });
+  res.redirect(sent ? '/survey-sent' : '/survey?error=1');
 });
 
 // ── Checkout: form → Maksekeskus transaction ──────────────────────────────────
@@ -386,6 +402,44 @@ async function sendEmail(order, orderId) {
     console.log('Emails sent for order', orderId);
   } catch (err) {
     console.error('Email error:', err.message);
+  }
+}
+
+async function sendSurveyEmail(entry) {
+  const { name, surname, age, phone, email, goal, expectations } = entry;
+  const e = escHtml;
+  const row = (label, value, wrap) => value
+    ? `<tr style="border-bottom:1px solid #E5E0D8;">
+         <td style="padding:10px 0;color:#6B6860;width:180px;vertical-align:top;">${label}</td>
+         <td style="padding:10px 0;${wrap ? 'white-space:pre-wrap;' : ''}">${e(value)}</td>
+       </tr>`
+    : '';
+  try {
+    await resend.emails.send({
+      from:     RESEND_FROM,
+      to:       RECIPIENT_EMAIL,
+      reply_to: email,
+      subject:  `Анкета: ${e(name)} ${e(surname)}`,
+      html: `
+        <div style="font-family:Calibri,sans-serif;max-width:600px;margin:0 auto;padding:32px;color:#1C1C1A;">
+          <h2 style="color:#C8A96E;margin-bottom:24px;">Новая анкета с сайта</h2>
+          <table style="width:100%;border-collapse:collapse;">
+            ${row('Имя', `${name} ${surname}`)}
+            ${row('Возраст', age)}
+            ${row('Телефон', phone)}
+            ${row('E-mail', email)}
+            ${row('Ожидаемый результат', goal, true)}
+            ${row('Ожидания от работы', expectations, true)}
+          </table>
+          <p style="margin-top:32px;font-size:0.85em;color:#999;">Анкета отправлена без оплаты — свяжитесь с клиентом.</p>
+        </div>
+      `,
+    });
+    console.log('Survey email sent for', email);
+    return true;
+  } catch (err) {
+    console.error('Survey email error:', err.message);
+    return false;
   }
 }
 
