@@ -121,6 +121,14 @@ function validateOrderFields(body) {
   if (isNaN(ageNum) || ageNum < 16 || ageNum > 99) { console.warn('Validation fail: field=age'); return 'Invalid age'; }
   if (!phone || typeof phone !== 'string' || phone.length > 30) { console.warn('Validation fail: field=phone'); return 'Invalid phone'; }
   if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) { console.warn('Validation fail: field=email'); return 'Invalid email'; }
+  // Optional free-text fields, bounded so nothing unbounded reaches the email.
+  for (const field of ['goal', 'expectations']) {
+    const value = body[field];
+    if (value !== undefined && (typeof value !== 'string' || value.length > 1000)) {
+      console.warn(`Validation fail: field=${field}`);
+      return `Invalid ${field}`;
+    }
+  }
   return null;
 }
 
@@ -171,7 +179,7 @@ app.post('/api/checkout', checkoutLimiter, async (req, res) => {
     return res.redirect(`/order?plan=${plan}&error=1`);
   }
 
-  const { name, surname, age, phone, email, plan } = req.body;
+  const { name, surname, age, phone, email, plan, goal, expectations } = req.body;
   const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
   const customerIp = /^[\d.:\w]+$/.test(rawIp) ? rawIp : '127.0.0.1';
 
@@ -181,7 +189,7 @@ app.post('/api/checkout', checkoutLimiter, async (req, res) => {
 
   // Demo mode if keys not set
   if (!process.env.MAKSEKESKUS_SHOP_ID || !process.env.MAKSEKESKUS_SECRET_KEY) {
-    storePendingOrder(orderId, { name, surname, age, phone, email, plan, planName, amount });
+    storePendingOrder(orderId, { name, surname, age, phone, email, plan, planName, amount, goal, expectations });
     return res.redirect(`/success?demo=1&orderId=${encodeURIComponent(orderId)}`);
   }
 
@@ -235,7 +243,7 @@ app.post('/api/checkout', checkoutLimiter, async (req, res) => {
     }
     console.log('Redirecting to:', paymentUrl);
 
-    storePendingOrder(orderId, { name, surname, age, phone, email, plan, planName, amount });
+    storePendingOrder(orderId, { name, surname, age, phone, email, plan, planName, amount, goal, expectations });
     res.redirect(303, paymentUrl);
 
   } catch (err) {
@@ -294,7 +302,7 @@ app.get('/payment-return', (req, res) => {
 // ── Email via Resend ──────────────────────────────────────────────────────────
 
 async function sendEmail(order, orderId) {
-  const { name, surname, age, phone, email, planName, amount } = order;
+  const { name, surname, age, phone, email, planName, amount, goal, expectations } = order;
   const e = escHtml;
   try {
     await Promise.all([
@@ -330,6 +338,14 @@ async function sendEmail(order, orderId) {
                 <td style="padding:10px 0;color:#6B6860;">E-mail</td>
                 <td style="padding:10px 0;">${e(email)}</td>
               </tr>
+              ${goal ? `<tr style="border-bottom:1px solid #E5E0D8;">
+                <td style="padding:10px 0;color:#6B6860;vertical-align:top;">Ожидаемый результат</td>
+                <td style="padding:10px 0;white-space:pre-wrap;">${e(goal)}</td>
+              </tr>` : ''}
+              ${expectations ? `<tr style="border-bottom:1px solid #E5E0D8;">
+                <td style="padding:10px 0;color:#6B6860;vertical-align:top;">Ожидания от работы</td>
+                <td style="padding:10px 0;white-space:pre-wrap;">${e(expectations)}</td>
+              </tr>` : ''}
               <tr>
                 <td style="padding:10px 0;color:#6B6860;">Номер заказа</td>
                 <td style="padding:10px 0;font-size:0.85em;color:#999;">${e(orderId)}</td>

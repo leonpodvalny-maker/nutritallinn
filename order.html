@@ -120,7 +120,7 @@
       margin-bottom: 0.5rem;
     }
 
-    input {
+    input, textarea {
       width: 100%;
       padding: 0.85rem 1rem;
       border: 1px solid var(--border);
@@ -132,11 +132,16 @@
       transition: border-color 0.2s;
     }
 
-    input:focus {
+    input:focus, textarea:focus {
       border-color: var(--accent);
     }
+    textarea {
+      resize: vertical;
+      min-height: 90px;
+      line-height: 1.6;
+    }
 
-    input::placeholder {
+    input::placeholder, textarea::placeholder {
       color: #C0BBB3;
     }
 
@@ -241,6 +246,18 @@
         <input type="email" id="email" name="email" placeholder="maria@gmail.com" required />
       </div>
 
+      <div class="form-group" id="goalGroup" hidden>
+        <label for="goal">Ожидаемый результат</label>
+        <textarea id="goal" name="goal" maxlength="1000"
+                  placeholder="Чего вы хотите достичь? Например: снизить вес, наладить питание, разобраться с нехваткой энергии."></textarea>
+      </div>
+
+      <div class="form-group" id="expectationsGroup" hidden>
+        <label for="expectations">Ожидания от работы со мной</label>
+        <textarea id="expectations" name="expectations" maxlength="1000"
+                  placeholder="Что для вас важно в совместной работе? Например: поддержка и обратная связь, чёткий план, объяснения без давления."></textarea>
+      </div>
+
       <button type="submit" class="submit-btn" id="submitBtn">
         Перейти к оплате
       </button>
@@ -266,6 +283,10 @@
   document.getElementById('planBadge').textContent = PLANS[plan].badge;
   document.getElementById('planTitle').textContent = PLANS[plan].title;
   document.getElementById('planPrice').textContent = plan + ' €';
+  // The follow-up consultation builds on an existing plan, so it does not ask this.
+  const isFollowUp = plan === '75';
+  document.getElementById('goalGroup').hidden = isFollowUp;
+  document.getElementById('expectationsGroup').hidden = isFollowUp;
 
   if (params.get('cancelled') === '1') {
     document.getElementById('cancelledMsg').style.display = 'block';
