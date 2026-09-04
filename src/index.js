@@ -146,14 +146,31 @@ async function sendSurveyEmail(env, entry) {
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
-function robots(env) {
-  const site = env.SITE_URL || 'https://nutritallinn.ee';
+function robots(request, env) {
+  const site = env.SITE_URL || new URL(request.url).origin;
   return new Response(
     'User-agent: *\nAllow: /\n' +
     ['/order', '/success', '/error', '/survey', '/survey-sent', '/api/', '/payment-return']
       .map(p => `Disallow: ${p}\n`).join('') +
     `\nSitemap: ${site}/sitemap.xml\n`,
     { headers: { 'content-type': 'text/plain; charset=utf-8' } }
+  );
+}
+
+// Served from the Worker so the host is always the one actually in use.
+function sitemap(request, env) {
+  const site = env.SITE_URL || new URL(request.url).origin;
+  return new Response(
+    `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${site}/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
+`,
+    { headers: { 'content-type': 'application/xml; charset=utf-8' } }
   );
 }
 
@@ -280,7 +297,8 @@ export default {
       if (pathname === '/api/survey') return handleSurvey(request, env);
     }
 
-    if (pathname === '/robots.txt') return robots(env);
+    if (pathname === '/robots.txt') return robots(request, env);
+    if (pathname === '/sitemap.xml') return sitemap(request, env);
     if (pathname === '/success') return handleSuccess(request, env);
 
     if (pathname === '/payment-return') {
