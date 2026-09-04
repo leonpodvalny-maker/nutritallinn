@@ -254,19 +254,18 @@
 
 <script>
   const params = new URLSearchParams(window.location.search);
-  const plan = params.get('plan') || '50';
+  // Keep in sync with PLANS in server.js — the server validates the price anyway.
+  const PLANS = {
+    '100': { badge: 'Разовая',   title: 'Консультация по питанию' },
+    '75':  { badge: 'Повторная', title: 'Повторная консультация' },
+    '150': { badge: 'Рацион',    title: 'Индивидуальный рацион на 7 дней' },
+  };
+  const plan = PLANS[params.get('plan')] ? params.get('plan') : '100';
 
   document.getElementById('planInput').value = plan;
-
-  if (plan === '175') {
-    document.getElementById('planBadge').textContent = 'Месяц поддержки';
-    document.getElementById('planTitle').textContent = 'Месячное ведение';
-    document.getElementById('planPrice').textContent = '175 €';
-  } else {
-    document.getElementById('planBadge').textContent = 'Разовая';
-    document.getElementById('planTitle').textContent = 'Консультация по питанию';
-    document.getElementById('planPrice').textContent = '50 €';
-  }
+  document.getElementById('planBadge').textContent = PLANS[plan].badge;
+  document.getElementById('planTitle').textContent = PLANS[plan].title;
+  document.getElementById('planPrice').textContent = plan + ' €';
 
   if (params.get('cancelled') === '1') {
     document.getElementById('cancelledMsg').style.display = 'block';

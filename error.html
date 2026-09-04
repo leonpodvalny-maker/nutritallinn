@@ -108,7 +108,7 @@
   </div>
   <script>
     const plan = new URLSearchParams(window.location.search).get('plan');
-    if (plan === '50' || plan === '175') {
+    if (['100', '75', '150'].includes(plan)) {
       document.getElementById('retryLink').href = '/order?plan=' + plan;
     }
   </script>

@@ -21,7 +21,14 @@ if (!process.env.RESEND_API_KEY) {
   process.exit(1);
 }
 const RESEND_FROM = process.env.RESEND_FROM || 'onboarding@resend.dev';
-const VALID_PLANS = new Set(['50', '175']);
+// Plan catalogue — the single source of truth for prices and names.
+const PLANS = {
+  '100': { amount: '100.00', name: 'Консультация по питанию' },
+  '75':  { amount: '75.00',  name: 'Повторная консультация' },
+  '150': { amount: '150.00', name: 'Индивидуальный рацион на 7 дней' },
+};
+const DEFAULT_PLAN = '100';
+const VALID_PLANS = new Set(Object.keys(PLANS));
 
 // ── Security middleware ───────────────────────────────────────────────────────
 
@@ -59,8 +66,11 @@ const checkoutLimiter = rateLimit({
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname, { index: false }));
+// ponytail: whitelist by extension instead of a public/ move — no file shuffling,
+// and the root stays browsable for assets only. Move to public/ if this grows.
+const PUBLIC_EXT = /\.(webp|png|jpe?g|svg|css|ico|woff2?)$/i;
+const serveAssets = express.static(__dirname, { index: false });
+app.use((req, res, next) => PUBLIC_EXT.test(req.path) ? serveAssets(req, res, next) : next());
 
 // In-memory order store — entries expire after 30 minutes
 const pendingOrders = {};
@@ -157,7 +167,7 @@ app.get('/success', async (req, res) => {
 app.post('/api/checkout', checkoutLimiter, async (req, res) => {
   const validationError = validateOrderFields(req.body);
   if (validationError) {
-    const plan = req.body.plan && VALID_PLANS.has(req.body.plan) ? req.body.plan : '50';
+    const plan = req.body.plan && VALID_PLANS.has(req.body.plan) ? req.body.plan : DEFAULT_PLAN;
     return res.redirect(`/order?plan=${plan}&error=1`);
   }
 
@@ -165,8 +175,7 @@ app.post('/api/checkout', checkoutLimiter, async (req, res) => {
   const rawIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
   const customerIp = /^[\d.:\w]+$/.test(rawIp) ? rawIp : '127.0.0.1';
 
-  const amount   = plan === '175' ? '175.00' : '50.00';
-  const planName = plan === '175' ? 'Месячное ведение (4 недели)' : 'Консультация по питанию';
+  const { amount, name: planName } = PLANS[plan];
   const orderId  = `NTL-${crypto.randomUUID()}`;
   const siteUrl  = process.env.SITE_URL || 'http://localhost:3000';
 
