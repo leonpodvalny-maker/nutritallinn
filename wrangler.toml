@@ -1,0 +1,19 @@
+name = "nutritallinn"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+# The Worker decides every route; assets are fetched through the ASSETS binding.
+run_worker_first = true
+# Serve /order.html at /order without bouncing back to the Worker.
+html_handling = "none"
+not_found_handling = "none"
+
+[[kv_namespaces]]
+binding = "ORDERS"
+id = "PLACEHOLDER_REPLACE_AFTER_CREATING_NAMESPACE"
+
+[vars]
+SITE_URL = "https://nutritallinn.ee"

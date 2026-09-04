@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ошибка оплаты — Nutritallinn</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream: #FAF7F2;
+      --warm-white: #FDFCFA;
+      --dark: #1C1C1A;
+      --muted: #6B6860;
+      --accent: #C8A96E;
+      --accent-light: #EFE5D3;
+      --border: #E5E0D8;
+    }
+
+    body {
+      font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
+      background: var(--cream);
+      color: var(--dark);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .card {
+      background: var(--warm-white);
+      max-width: 480px;
+      width: 100%;
+      padding: 3.5rem 3rem;
+      text-align: center;
+    }
+
+    .icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #FFF3CD;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 2rem;
+    }
+
+    .icon svg {
+      width: 28px;
+      height: 28px;
+      stroke: #C8A96E;
+    }
+
+    h1 {
+      font-size: 1.7rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      font-size: 1rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 0.8rem;
+    }
+
+    .divider {
+      width: 40px;
+      height: 1px;
+      background: var(--accent);
+      margin: 1.8rem auto;
+    }
+
+    .btn {
+      display: inline-block;
+      margin-top: 1.5rem;
+      padding: 0.9rem 2.5rem;
+      background: var(--dark);
+      color: var(--warm-white);
+      text-decoration: none;
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      transition: background 0.2s;
+    }
+
+    .btn:hover { background: #333; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+    <h1>Ошибка при оплате</h1>
+    <div class="divider"></div>
+    <p>Не удалось создать платёж. Пожалуйста, попробуйте ещё раз.</p>
+    <p>Если ошибка повторяется — напишите нам напрямую.</p>
+    <a id="retryLink" href="/order" class="btn">Попробовать ещё раз</a>
+  </div>
+  <script>
+    const plan = new URLSearchParams(window.location.search).get('plan');
+    if (['100', '75', '150'].includes(plan)) {
+      document.getElementById('retryLink').href = '/order?plan=' + plan;
+    }
+  </script>
+</body>
+</html>
