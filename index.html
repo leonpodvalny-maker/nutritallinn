@@ -56,7 +56,12 @@
         "@type": "Person",
         "name": "Елена Подвальная",
         "jobTitle": "Нутрициолог",
-        "description": "Сертифицированный нутрициолог в Таллине. Специализируется на индивидуальных консультациях по питанию, коррекции веса и формировании здоровых пищевых привычек.",
+        "description": "Нутрициолог в Таллине, пищевой технолог по первому образованию. С 2019 года развивает проект доставки готовых рационов Fitfood Estonia, с 2025 года помогает выстраивать индивидуальную систему питания. Прошла годовое обучение в Rahvatervise Akadeemia.",
+        "alumniOf": {
+          "@type": "EducationalOrganization",
+          "name": "Rahvatervise Akadeemia",
+          "address": { "@type": "PostalAddress", "addressLocality": "Таллин", "addressCountry": "EE" }
+        },
         "image": "https://nutritallinn.onrender.com/photo-hero.webp",
         "email": "jelena.tsumakova@gmail.com",
         "telephone": "+3725543213",
@@ -67,7 +72,9 @@
           "расчёт калоража",
           "баланс макронутриентов",
           "пищевые привычки",
-          "вегетарианское питание"
+          "питание при планировании беременности",
+          "детское и семейное питание",
+          "пищевое поведение"
         ],
         "sameAs": [
           "https://www.instagram.com/fitfoodestonia/",
@@ -454,7 +461,7 @@
       max-width: 1100px;
       margin: 0 auto;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 2px;
     }
 
@@ -885,30 +892,34 @@
       margin-bottom: 1.2rem;
     }
 
-    .about-facts {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem 2rem;
-      margin-top: 2.5rem;
-      padding-top: 2rem;
-      border-top: 1px solid var(--border);
-    }
-
-    .about-fact-num {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 2.2rem;
-      font-weight: 300;
-      color: var(--accent);
-      line-height: 1;
-      margin-bottom: 0.3rem;
-    }
-
-    .about-fact-label {
+    .about-subtitle {
       font-size: 0.78rem;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: var(--muted);
+      color: var(--dark);
+      margin: 2rem 0 1rem;
     }
+    .about-list {
+      list-style: none;
+      margin-bottom: 1.5rem;
+    }
+    .about-list li {
+      position: relative;
+      padding: 0.6rem 0 0.6rem 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 300;
+      line-height: 1.7;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .about-list li::before {
+      content: '—';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+
 
     /* ── FAQ ── */
     .faq-section {
@@ -973,6 +984,15 @@
     }
 
     /* ── RESPONSIVE ── */
+    @media (max-width: 950px) {
+      .cards-grid { grid-template-columns: 1fr; max-width: 560px; }
+    }
+
+    /* Equal-width CTA buttons once they stop fitting on one line. */
+    @media (max-width: 680px) {
+      .cta-inner a { width: 100%; max-width: 280px; padding-left: 0; padding-right: 0; }
+    }
+
     @media (max-width: 768px) {
       nav { padding: 0 4vw; }
       .nav-links { display: none; }
@@ -997,14 +1017,10 @@
       .about-inner { grid-template-columns: 1fr; gap: 3rem; }
       .about-photo::before { display: none; }
       .about-photo img { aspect-ratio: 4/3; }
-      .about-facts { grid-template-columns: 1fr 1fr; }
       .process-inner { grid-template-columns: 1fr; gap: 3rem; }
       .process-image { position: static; aspect-ratio: 4/3; object-position: center center; }
       .faq-inner { grid-template-columns: 1fr; gap: 1rem; }
       .faq-header { position: static; }
-      /* ponytail: stacked CTA buttons share one width instead of hugging their text */
-      .cta-inner a { width: 100%; max-width: 280px; padding-left: 0; padding-right: 0; }
-      .cards-grid { grid-template-columns: 1fr; }
       .card { padding: 2.5rem 2rem; }
       footer { flex-direction: column; text-align: center; }
     }
@@ -1093,26 +1109,20 @@
       <p class="section-eyebrow">О себе</p>
       <h2 class="section-title">Елена Подвальная</h2>
       <div class="divider"></div>
-      <p class="about-lead">«Здесь будет ваша цитата или главная мысль о себе.»</p>
-      <p class="about-text">Здесь расскажите о себе: образование, путь в нутрициологию, что вас вдохновляет в этой работе.</p>
-      <p class="about-text">Второй абзац: специализация, с кем работаете, какой подход используете.</p>
-      <div class="about-facts">
-        <div>
-          <div class="about-fact-num">—</div>
-          <div class="about-fact-label">лет опыта</div>
-        </div>
-        <div>
-          <div class="about-fact-num">—</div>
-          <div class="about-fact-label">клиентов</div>
-        </div>
-        <div>
-          <div class="about-fact-num">—</div>
-          <div class="about-fact-label">сертификат / курс</div>
-        </div>
-        <div>
-          <div class="about-fact-num">—</div>
-          <div class="about-fact-label">специализация</div>
-        </div>
+      <p class="about-lead">«Еда всегда была для меня чем-то большим, чем просто набор продуктов и калорий.»</p>
+      <p class="about-text">По первому образованию я пищевой технолог, поэтому хорошо понимаю, как создаются продукты и что стоит за их составом.</p>
+      <p class="about-text">С 2019 года я развиваю проект по доставке готовых рационов Fitfood Estonia, а с 2025 года помогаю людям выстраивать индивидуальную систему питания и находить здоровые отношения с едой.</p>
+      <p class="about-text">Свои знания я дополнила годовым обучением в Rahvatervise Akadeemia в Таллине и продолжаю регулярно повышать квалификацию, работая с опытными коллегами и изучая современные подходы к питанию.</p>
+      <p class="about-text">Я не верю в строгие запреты и универсальные диеты. Верю в осознанность, баланс и решения, которые подходят именно вам.</p>
+      <p class="about-subtitle">Чем я могу помочь</p>
+      <ul class="about-list">
+        <li>снизить или набрать вес без крайностей</li>
+        <li>наладить пищевое поведение и отношения с едой</li>
+        <li>оценить, насколько сбалансирован ваш рацион</li>
+        <li>подготовить питание во время планирования и ожидания беременности</li>
+        <li>организовать полноценное питание детей и всей семьи</li>
+      </ul>
+      <p class="about-text">Моя задача не просто составить меню, а помочь сделать питание понятным, комфортным и работающим именно в вашей жизни.</p>
       </div>
     </div>
   </div>
