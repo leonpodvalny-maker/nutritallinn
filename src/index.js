@@ -7,8 +7,16 @@ const PLANS = {
   '150': { amount: '150.00', name: 'Индивидуальный рацион на 7 дней' },
 };
 const DEFAULT_PLAN = '100';
+const isValidPlan = (plan) => Object.hasOwn(PLANS, plan);
 const ORDER_TTL_SECONDS = 30 * 60;
 const MAKSEKESKUS_HOST = 'payment.maksekeskus.ee';
+
+// Express refused to boot without these; a Worker has no startup hook, so the
+// handlers check before doing anything that would report a false success.
+function assertMailConfig(env) {
+  const missing = ['RESEND_API_KEY', 'RECIPIENT_EMAIL'].filter(k => !env[k]);
+  if (missing.length) throw new Error(`Missing config: ${missing.join(', ')}`);
+}
 
 // ── MAC (Maksekeskus uses plain SHA-512 over sorted JSON + secret, not HMAC) ──
 
@@ -40,7 +48,7 @@ const redirect = (location) => new Response(null, { status: 302, headers: { loca
 
 function validateOrderFields(body) {
   const { name, surname, age, phone, email, plan } = body;
-  if (!PLANS[plan]) return 'Invalid plan';
+  if (typeof plan !== 'string' || !isValidPlan(plan)) return 'Invalid plan';
   if (!name || typeof name !== 'string' || !name.trim() || name.length > 100) return 'Invalid name';
   if (!surname || typeof surname !== 'string' || !surname.trim() || surname.length > 100) return 'Invalid surname';
   const ageNum = parseInt(age, 10);
@@ -54,10 +62,25 @@ function validateOrderFields(body) {
   return null;
 }
 
+const MAX_BODY_BYTES = 10 * 1024;
+
+class BadRequest extends Error {}
+
 async function readBody(request) {
+  const declared = Number(request.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) throw new BadRequest('Body too large');
+
+  const raw = await request.arrayBuffer();
+  if (raw.byteLength > MAX_BODY_BYTES) throw new BadRequest('Body too large');
+
   const type = request.headers.get('content-type') || '';
-  if (type.includes('application/json')) return await request.json();
-  return Object.fromEntries(await request.formData());
+  const shaped = new Request(request.url, { method: 'POST', headers: request.headers, body: raw });
+  try {
+    if (type.includes('application/json')) return await shaped.json();
+    return Object.fromEntries(await shaped.formData());
+  } catch {
+    throw new BadRequest('Malformed body');
+  }
 }
 
 // ── Email via Resend ──────────────────────────────────────────────────────────
@@ -177,23 +200,37 @@ function sitemap(request, env) {
 async function handleCheckout(request, env) {
   const body = await readBody(request);
   if (validateOrderFields(body)) {
-    const plan = PLANS[body.plan] ? body.plan : DEFAULT_PLAN;
+    const plan = isValidPlan(body.plan) ? body.plan : DEFAULT_PLAN;
     return redirect(`/order?plan=${plan}&error=1`);
   }
 
   const { name, surname, age, phone, email, plan, goal, expectations } = body;
   const { amount, name: planName } = PLANS[plan];
+  const onError = redirect(`/error?plan=${encodeURIComponent(plan)}`);
   const orderId = `NTL-${crypto.randomUUID()}`;
   const siteUrl = env.SITE_URL || new URL(request.url).origin;
   const order = { name, surname, age, phone, email, plan, planName, amount, goal, expectations };
 
+  try {
+    assertMailConfig(env);
+  } catch (err) {
+    console.error('Checkout blocked:', err.message);
+    return onError;
+  }
+
   // Demo mode when payment keys are absent, same as the Express version.
   if (!env.MAKSEKESKUS_SHOP_ID || !env.MAKSEKESKUS_SECRET_KEY) {
-    await env.ORDERS.put(orderId, JSON.stringify(order), { expirationTtl: ORDER_TTL_SECONDS });
+    try {
+      await env.ORDERS.put(orderId, JSON.stringify(order), { expirationTtl: ORDER_TTL_SECONDS });
+    } catch (err) {
+      console.error('Demo order storage failed:', err.message);
+      return onError;
+    }
     return redirect(`/success?demo=1&orderId=${encodeURIComponent(orderId)}`);
   }
 
-  const auth = btoa(`${env.MAKSEKESKUS_SHOP_ID}:${env.MAKSEKESKUS_SECRET_KEY}`);
+  try {
+    const auth = btoa(`${env.MAKSEKESKUS_SHOP_ID}:${env.MAKSEKESKUS_SECRET_KEY}`);
   const res = await fetch('https://api.maksekeskus.ee/v1/transactions', {
     method: 'POST',
     headers: { authorization: `Basic ${auth}`, 'content-type': 'application/json' },
@@ -210,21 +247,30 @@ async function handleCheckout(request, env) {
     }),
   });
 
-  if (!res.ok) {
-    console.error('Checkout failed:', res.status, await res.text());
-    return redirect(`/error?plan=${encodeURIComponent(plan)}`);
+    if (!res.ok) {
+      console.error('Checkout failed:', res.status, await res.text());
+      return onError;
+    }
+
+    const tx = await res.json();
+    const offered = (tx.payment_methods?.other || []).find(m => m.name === 'redirect')?.url;
+    let paymentUrl = `https://${MAKSEKESKUS_HOST}/pay.html?trx=${tx.id}`;
+    try {
+      if (offered && new URL(offered).hostname === MAKSEKESKUS_HOST) paymentUrl = offered;
+    } catch { /* keep the fallback */ }
+
+    // The transaction exists by now, so a storage failure must not lose the
+    // customer's details silently — log it and let the payment proceed.
+    try {
+      await env.ORDERS.put(orderId, JSON.stringify(order), { expirationTtl: ORDER_TTL_SECONDS });
+    } catch (err) {
+      console.error('Order storage failed for live transaction', orderId, err.message);
+    }
+    return new Response(null, { status: 303, headers: { location: paymentUrl } });
+  } catch (err) {
+    console.error('Checkout error:', err.message);
+    return onError;
   }
-
-  const tx = await res.json();
-  const fallback = `https://${MAKSEKESKUS_HOST}/pay.html?trx=${tx.id}`;
-  const offered = (tx.payment_methods?.other || []).find(m => m.name === 'redirect')?.url;
-  let paymentUrl = fallback;
-  try {
-    if (offered && new URL(offered).hostname === MAKSEKESKUS_HOST) paymentUrl = offered;
-  } catch { /* keep the fallback */ }
-
-  await env.ORDERS.put(orderId, JSON.stringify(order), { expirationTtl: ORDER_TTL_SECONDS });
-  return new Response(null, { status: 303, headers: { location: paymentUrl } });
 }
 
 async function handlePaymentNotify(request, env, ctx) {
@@ -262,6 +308,7 @@ async function handleSurvey(request, env) {
   const body = await readBody(request);
   if (validateOrderFields({ ...body, plan: DEFAULT_PLAN })) return redirect('/survey?error=1');
   try {
+    assertMailConfig(env);
     await sendSurveyEmail(env, body);
     return redirect('/survey-sent');
   } catch (err) {
@@ -292,9 +339,20 @@ export default {
     const { pathname } = url;
 
     if (request.method === 'POST') {
-      if (pathname === '/api/checkout') return handleCheckout(request, env);
-      if (pathname === '/api/payment-notify') return handlePaymentNotify(request, env, ctx);
-      if (pathname === '/api/survey') return handleSurvey(request, env);
+      try {
+        if (pathname === '/api/checkout') return await handleCheckout(request, env);
+        if (pathname === '/api/payment-notify') return await handlePaymentNotify(request, env, ctx);
+        if (pathname === '/api/survey') return await handleSurvey(request, env);
+      } catch (err) {
+        if (err instanceof BadRequest) return new Response(err.message, { status: 400 });
+        throw err;
+      }
+    }
+
+    // Everything below is a page or a generated file: GET/HEAD only, as the
+    // Express routes were, so no side effect hangs off another method.
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      return new Response('Method Not Allowed', { status: 405, headers: { allow: 'GET, HEAD' } });
     }
 
     if (pathname === '/robots.txt') return robots(request, env);
