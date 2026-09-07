@@ -55,6 +55,36 @@ async function verifyMac(payload, secretKey, rawJson) {
   return false;
 }
 
+// ── Security headers ─────────────────────────────────────────────────────────
+
+// Carried over from the Express helmet config. 'unsafe-inline' stays because
+// the pages use inline <style> and <script>; formAction lets the checkout form
+// post through to the payment provider.
+const SECURITY_HEADERS = {
+  'content-security-policy': [
+    "default-src 'self'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "script-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "connect-src 'self'",
+    "frame-src 'none'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self' https://payment.maksekeskus.ee",
+  ].join('; '),
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'x-frame-options': 'DENY',
+  'strict-transport-security': 'max-age=15552000; includeSubDomains',
+};
+
+function withSecurityHeaders(response) {
+  const out = new Response(response.body, response);
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) out.headers.set(name, value);
+  return out;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const escHtml = (str) => String(str)
@@ -438,6 +468,13 @@ async function handleSuccess(request, env) {
 
 export default {
   async fetch(request, env, ctx) {
+    // One wrapper so every response carries the headers — pages, assets,
+    // redirects and error paths alike.
+    return withSecurityHeaders(await route(request, env, ctx));
+  },
+};
+
+async function route(request, env, ctx) {
     const url = new URL(request.url);
     const { pathname } = url;
 
@@ -489,5 +526,4 @@ export default {
     }
 
     return env.ASSETS.fetch(request);
-  },
-};
+}
