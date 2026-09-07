@@ -78,7 +78,7 @@ async function sendMail(env, message) {
     },
     body: JSON.stringify({ from: env.RESEND_FROM || 'onboarding@resend.dev', ...message }),
   });
-  if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text()).slice(0, 200)}`);
   return res;
 }
 
