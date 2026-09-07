@@ -1,0 +1,21 @@
+name = "site"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+# The Worker decides every route; assets are fetched through the ASSETS binding.
+run_worker_first = true
+# Serve /order.html at /order without bouncing back to the Worker.
+html_handling = "none"
+not_found_handling = "none"
+
+[[kv_namespaces]]
+binding = "ORDERS"
+id = "ff53c547dc8240da9c5f9b19595b36a7"
+
+# SITE_URL is deliberately unset: the Worker derives its own origin from the
+# incoming request, so payment redirects work on workers.dev and on a custom
+# domain alike. Set it only if the site is ever served behind a proxy.
+

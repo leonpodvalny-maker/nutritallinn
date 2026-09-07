@@ -8,11 +8,16 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "resend": "^3.2.0",
     "axios": "^1.6.7",
     "dotenv": "^16.4.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.2.0",
     "helmet": "^7.1.0",
-    "express-rate-limit": "^7.2.0"
+    "resend": "^3.2.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.59.1",
+    "sharp": "^0.34.5",
+    "wrangler": "^4.129.0"
   }
 }
