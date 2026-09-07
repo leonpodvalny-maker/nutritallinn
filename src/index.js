@@ -223,7 +223,9 @@ async function handleCheckout(request, env) {
   const { name, surname, age, phone, email, plan, goal, expectations } = body;
   const { amount, name: planName } = PLANS[plan];
   const onError = redirect(`/error?plan=${encodeURIComponent(plan)}`);
-  const orderId = `NTL-${crypto.randomUUID()}`;
+  // Maksekeskus documents a 20-character limit on the transaction reference;
+  // a full UUID is 40. 16 hex chars keep collisions negligible at this volume.
+  const orderId = `NTL-${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
   const siteUrl = env.SITE_URL || new URL(request.url).origin;
   const order = { name, surname, age, phone, email, plan, planName, amount, goal, expectations };
 
