@@ -27,15 +27,32 @@ async function composeMac(data, secretKey) {
   return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
 }
 
-async function verifyMac(payload, secretKey) {
-  const { mac, ...data } = payload;
-  const expected = await composeMac(data, secretKey);
-  const actual = mac || '';
-  if (expected.length !== actual.length) return false;
+function macEquals(expected, actual) {
+  if (typeof actual !== 'string' || expected.length !== actual.length) return false;
   // Constant-time compare: XOR every char, never short-circuit.
   let diff = 0;
   for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ actual.charCodeAt(i);
   return diff === 0;
+}
+
+// Maksekeskus documents hashing the JSON string exactly as received, while
+// this code has always hashed a re-serialised sorted object. Both require the
+// secret, so accepting either widens the accepted serialisation without
+// weakening authentication — and avoids losing a notification to a formatting
+// difference we cannot observe until a real payment arrives.
+async function verifyMac(payload, secretKey, rawJson) {
+  const { mac, ...data } = payload;
+  if (typeof mac !== 'string') return false;
+
+  if (macEquals(await composeMac(data, secretKey), mac)) return true;
+
+  if (typeof rawJson === 'string') {
+    const bytes = new TextEncoder().encode(rawJson + secretKey);
+    const digest = await crypto.subtle.digest('SHA-512', bytes);
+    const overRaw = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    if (macEquals(overRaw, mac)) return true;
+  }
+  return false;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -76,9 +93,25 @@ async function enforceRateLimit(env, request, bucket) {
   const ip = request.headers.get('cf-connecting-ip');
   if (!ip) return; // no IP to key on: let it through rather than block everyone
   const key = `rl:${bucket}:${ip}`;
-  const count = Number(await env.ORDERS.get(key)) || 0;
+
+  let count = 0;
+  try {
+    count = Number(await env.ORDERS.get(key)) || 0;
+  } catch (err) {
+    console.error('Rate limit read failed:', err.message);
+    return; // fail open: a limiter outage must not close the form
+  }
+
   if (count >= RATE_LIMIT.max) throw new TooManyRequests('Too many requests');
-  await env.ORDERS.put(key, String(count + 1), { expirationTtl: RATE_LIMIT.windowSeconds });
+
+  // KV allows roughly one write per second per key, and the daily free-tier
+  // write quota is finite — a failed counter update must never fail the
+  // request it was counting.
+  try {
+    await env.ORDERS.put(key, String(count + 1), { expirationTtl: RATE_LIMIT.windowSeconds });
+  } catch (err) {
+    console.error('Rate limit write failed:', err.message);
+  }
 }
 
 async function readBody(request) {
@@ -163,6 +196,26 @@ async function sendOrderEmails(env, order, orderId) {
   ]);
 }
 
+// Fallback when the paid order is not in KV: only the payment provider's own
+// fields are available, so write to the owner and flag what is missing.
+async function sendOwnerOnlyEmail(env, order, orderId) {
+  assertMailConfig(env);
+  const { name, phone, planName, amount } = order;
+  await sendMail(env, {
+    to: env.RECIPIENT_EMAIL,
+    subject: `Оплачен заказ ${orderId} — данные неполные`,
+    html: wrapper('Оплата получена, но данные формы не найдены', `
+      <table style="width:100%;border-collapse:collapse;">
+        ${row('Номер заказа', orderId)}
+        ${row('Сумма', amount ? `${amount} €` : '—')}
+        ${row('Услуга', planName)}
+        ${row('Имя', name)}
+        ${row('Телефон', phone)}
+      </table>
+      <p style="margin-top:32px;color:#6B6860;">Оплата прошла, но данные формы не сохранились. Свяжитесь с клиентом по контактам из Maksekeskus.</p>`),
+  });
+}
+
 async function sendSurveyEmail(env, entry) {
   const { name, surname, age, phone, email, goal, expectations } = entry;
   await sendMail(env, {
@@ -224,8 +277,10 @@ async function handleCheckout(request, env) {
   const { amount, name: planName } = PLANS[plan];
   const onError = redirect(`/error?plan=${encodeURIComponent(plan)}`);
   // Maksekeskus documents a 20-character limit on the transaction reference;
-  // a full UUID is 40. 16 hex chars keep collisions negligible at this volume.
-  const orderId = `NTL-${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
+  // NTL- plus 16 hex characters fits exactly. Random bytes rather than a
+  // sliced UUID, whose version nibble would cost 4 bits of entropy.
+  const random = crypto.getRandomValues(new Uint8Array(8));
+  const orderId = `NTL-${[...random].map(b => b.toString(16).padStart(2, '0')).join('')}`;
   const siteUrl = env.SITE_URL || new URL(request.url).origin;
   const order = { name, surname, age, phone, email, plan, planName, amount, goal, expectations };
 
@@ -293,31 +348,56 @@ async function handleCheckout(request, env) {
 
 async function handlePaymentNotify(request, env, ctx) {
   if (!env.MAKSEKESKUS_SECRET_KEY) return new Response('Configuration error', { status: 500 });
+  try {
+    assertMailConfig(env);
+  } catch (err) {
+    // Answering anything but 2xx makes Maksekeskus retry, which is what we
+    // want while the mail configuration is broken.
+    console.error('Payment notification blocked:', err.message);
+    return new Response('Configuration error', { status: 500 });
+  }
 
   const body = await readBody(request);
-  // Maksekeskus posts the payload as a `json` form field.
-  const payload = typeof body.json === 'string' ? JSON.parse(body.json) : body;
-  const mac = body.mac || payload.mac;
+  // Maksekeskus posts the payload as a `json` form field; keep the raw string
+  // so the signature can also be checked against it verbatim.
+  const rawJson = typeof body.json === 'string' ? body.json : null;
+  let payload;
+  try {
+    payload = rawJson ? JSON.parse(rawJson) : body;
+  } catch {
+    return new Response('Malformed payload', { status: 400 });
+  }
+  if (!payload || typeof payload !== 'object') return new Response('Malformed payload', { status: 400 });
 
-  if (!(await verifyMac({ ...payload, mac }, env.MAKSEKESKUS_SECRET_KEY))) {
+  const mac = body.mac || payload.mac;
+  if (!(await verifyMac({ ...payload, mac }, env.MAKSEKESKUS_SECRET_KEY, rawJson))) {
     console.warn('Invalid MAC in payment notification');
     return new Response('Invalid MAC', { status: 400 });
   }
 
   const orderId = payload.reference;
   if (payload.status === 'COMPLETED') {
-    const stored = await env.ORDERS.get(orderId, 'json');
+    let stored = null;
+    try {
+      stored = await env.ORDERS.get(orderId, 'json');
+    } catch (err) {
+      console.error('Order lookup failed for', orderId, err.message);
+    }
+
     const order = stored || {
       name: payload.customer_name || '—', surname: '', age: '—',
-      phone: payload.customer_phone || '—', email: payload.customer_email || '—',
+      phone: payload.customer_phone || '—', email: payload.customer_email || '',
       planName: payload.description || '—', amount: payload.amount,
     };
+
+    // Without the stored order there is no verified customer address, so the
+    // confirmation would bounce; notify the owner alone and say why.
+    const notify = stored
+      ? sendOrderEmails(env, order, orderId).then(() => env.ORDERS.delete(orderId))
+      : sendOwnerOnlyEmail(env, order, orderId);
+
     // Answer Maksekeskus immediately; the mail can finish after the response.
-    ctx.waitUntil(
-      sendOrderEmails(env, order, orderId)
-        .then(() => env.ORDERS.delete(orderId))
-        .catch(err => console.error('Order email error:', err.message))
-    );
+    ctx.waitUntil(notify.catch(err => console.error('Order email error:', err.message)));
   }
   return new Response('OK');
 }
@@ -345,8 +425,12 @@ async function handleSuccess(request, env) {
   if (searchParams.get('demo') === '1' && !keysConfigured && orderId) {
     const order = await env.ORDERS.get(orderId, 'json');
     if (order) {
-      await sendOrderEmails(env, order, orderId).catch(err => console.error('Demo email error:', err.message));
-      await env.ORDERS.delete(orderId);
+      try {
+        await sendOrderEmails(env, order, orderId);
+        await env.ORDERS.delete(orderId); // only once the mail actually went out
+      } catch (err) {
+        console.error('Demo email error:', err.message);
+      }
     }
   }
   return env.ASSETS.fetch(new Request(new URL('/success.html', request.url), request));
@@ -372,6 +456,12 @@ export default {
         }
         throw err;
       }
+    }
+
+    // API paths exist only for POST; say so rather than falling through to a
+    // 404 from the asset handler or a page-shaped 405.
+    if (pathname.startsWith('/api/')) {
+      return new Response('Method Not Allowed', { status: 405, headers: { allow: 'POST' } });
     }
 
     // Everything below is a page or a generated file: GET/HEAD only, as the
