@@ -65,6 +65,21 @@ function validateOrderFields(body) {
 const MAX_BODY_BYTES = 10 * 1024;
 
 class BadRequest extends Error {}
+class TooManyRequests extends Error {}
+
+// Matches the Express limiter this replaced: 10 posts per IP per 15 minutes.
+// ponytail: KV counter, not a Durable Object — approximate under a burst of
+// parallel requests, which is fine for stopping a script hammering the form.
+const RATE_LIMIT = { max: 10, windowSeconds: 15 * 60 };
+
+async function enforceRateLimit(env, request, bucket) {
+  const ip = request.headers.get('cf-connecting-ip');
+  if (!ip) return; // no IP to key on: let it through rather than block everyone
+  const key = `rl:${bucket}:${ip}`;
+  const count = Number(await env.ORDERS.get(key)) || 0;
+  if (count >= RATE_LIMIT.max) throw new TooManyRequests('Too many requests');
+  await env.ORDERS.put(key, String(count + 1), { expirationTtl: RATE_LIMIT.windowSeconds });
+}
 
 async function readBody(request) {
   const declared = Number(request.headers.get('content-length'));
@@ -198,6 +213,7 @@ function sitemap(request, env) {
 }
 
 async function handleCheckout(request, env) {
+  await enforceRateLimit(env, request, 'checkout');
   const body = await readBody(request);
   if (validateOrderFields(body)) {
     const plan = isValidPlan(body.plan) ? body.plan : DEFAULT_PLAN;
@@ -305,6 +321,7 @@ async function handlePaymentNotify(request, env, ctx) {
 }
 
 async function handleSurvey(request, env) {
+  await enforceRateLimit(env, request, 'survey');
   const body = await readBody(request);
   if (validateOrderFields({ ...body, plan: DEFAULT_PLAN })) return redirect('/survey?error=1');
   try {
@@ -345,6 +362,12 @@ export default {
         if (pathname === '/api/survey') return await handleSurvey(request, env);
       } catch (err) {
         if (err instanceof BadRequest) return new Response(err.message, { status: 400 });
+        if (err instanceof TooManyRequests) {
+          return new Response('Слишком много запросов. Попробуйте через 15 минут.', {
+            status: 429,
+            headers: { 'retry-after': String(RATE_LIMIT.windowSeconds), 'content-type': 'text/plain; charset=utf-8' },
+          });
+        }
         throw err;
       }
     }
