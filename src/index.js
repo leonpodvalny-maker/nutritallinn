@@ -11,6 +11,27 @@ const isValidPlan = (plan) => Object.hasOwn(PLANS, plan);
 const ORDER_TTL_SECONDS = 30 * 60;
 const MAKSEKESKUS_HOST = 'payment.maksekeskus.ee';
 
+// Pages may be served from another host (a cPanel subdomain) while the API
+// stays here. Redirects must land back on whichever site the form came from,
+// but only for hosts we allow — otherwise this becomes an open redirect.
+function allowedOrigins(env) {
+  return (env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function siteOrigin(request, env) {
+  const allowed = allowedOrigins(env);
+  const referrer = request.headers.get('origin') || request.headers.get('referer');
+  if (referrer) {
+    try {
+      const origin = new URL(referrer).origin;
+      if (allowed.includes(origin)) return origin;
+    } catch { /* fall through below */ }
+  }
+  // No usable referrer — a payment provider returning the visitor, say. Prefer
+  // the public site over this Worker's own hostname.
+  return allowed[0] || new URL(request.url).origin;
+}
+
 // Express refused to boot without these; a Worker has no startup hook, so the
 // handlers check before doing anything that would report a false success.
 function assertMailConfig(env) {
@@ -91,7 +112,7 @@ const escHtml = (str) => String(str)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
-const redirect = (location) => new Response(null, { status: 302, headers: { location } });
+const redirect = (location, base = '') => new Response(null, { status: 302, headers: { location: base + location } });
 
 function validateOrderFields(body) {
   const { name, surname, age, phone, email, plan } = body;
@@ -297,21 +318,22 @@ function sitemap(request, env) {
 
 async function handleCheckout(request, env) {
   await enforceRateLimit(env, request, 'checkout');
+  const site = siteOrigin(request, env);
   const body = await readBody(request);
   if (validateOrderFields(body)) {
     const plan = isValidPlan(body.plan) ? body.plan : DEFAULT_PLAN;
-    return redirect(`/order?plan=${plan}&error=1`);
+    return redirect(`/order?plan=${plan}&error=1`, site);
   }
 
   const { name, surname, age, phone, email, plan, goal, expectations } = body;
   const { amount, name: planName } = PLANS[plan];
-  const onError = redirect(`/error?plan=${encodeURIComponent(plan)}`);
+  const onError = redirect(`/error?plan=${encodeURIComponent(plan)}`, site);
   // Maksekeskus documents a 20-character limit on the transaction reference;
   // NTL- plus 16 hex characters fits exactly. Random bytes rather than a
   // sliced UUID, whose version nibble would cost 4 bits of entropy.
   const random = crypto.getRandomValues(new Uint8Array(8));
   const orderId = `NTL-${[...random].map(b => b.toString(16).padStart(2, '0')).join('')}`;
-  const siteUrl = env.SITE_URL || new URL(request.url).origin;
+  const siteUrl = site;
   const order = { name, surname, age, phone, email, plan, planName, amount, goal, expectations };
 
   try {
@@ -329,7 +351,7 @@ async function handleCheckout(request, env) {
       console.error('Demo order storage failed:', err.message);
       return onError;
     }
-    return redirect(`/success?demo=1&orderId=${encodeURIComponent(orderId)}`);
+    return redirect(`/success?demo=1&orderId=${encodeURIComponent(orderId)}`, site);
   }
 
   try {
@@ -434,15 +456,16 @@ async function handlePaymentNotify(request, env, ctx) {
 
 async function handleSurvey(request, env) {
   await enforceRateLimit(env, request, 'survey');
+  const site = siteOrigin(request, env);
   const body = await readBody(request);
-  if (validateOrderFields({ ...body, plan: DEFAULT_PLAN })) return redirect('/survey?error=1');
+  if (validateOrderFields({ ...body, plan: DEFAULT_PLAN })) return redirect('/survey?error=1', site);
   try {
     assertMailConfig(env);
     await sendSurveyEmail(env, body);
-    return redirect('/survey-sent');
+    return redirect('/survey-sent', site);
   } catch (err) {
     console.error('Survey email error:', err.message);
-    return redirect('/survey?error=1');
+    return redirect('/survey?error=1', site);
   }
 }
 
@@ -512,10 +535,11 @@ async function route(request, env, ctx) {
     if (pathname === '/success') return handleSuccess(request, env);
 
     if (pathname === '/payment-return') {
+      const site = siteOrigin(request, env);
       const status = url.searchParams.get('status');
       return status === 'COMPLETED' || status === 'SUCCESS'
-        ? redirect(`/success?orderId=${encodeURIComponent(url.searchParams.get('reference') || '')}`)
-        : redirect('/order?cancelled=1');
+        ? redirect(`/success?orderId=${encodeURIComponent(url.searchParams.get('reference') || '')}`, site)
+        : redirect('/order?cancelled=1', site);
     }
 
     // Extensionless page routes map onto their .html files.

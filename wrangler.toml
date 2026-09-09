@@ -19,3 +19,8 @@ id = "ff53c547dc8240da9c5f9b19595b36a7"
 # incoming request, so payment redirects work on workers.dev and on a custom
 # domain alike. Set it only if the site is ever served behind a proxy.
 
+[vars]
+# Sites allowed to post the forms and receive the redirects back. The first
+# entry is the public site: it is where visitors are sent when there is no
+# referrer to trust, such as returning from the payment provider.
+ALLOWED_ORIGINS = "https://nutritallinn.fitfoodestonia.ee,https://site.nutritallinn.workers.dev"
