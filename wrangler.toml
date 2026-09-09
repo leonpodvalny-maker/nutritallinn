@@ -24,3 +24,6 @@ id = "ff53c547dc8240da9c5f9b19595b36a7"
 # entry is the public site: it is where visitors are sent when there is no
 # referrer to trust, such as returning from the payment provider.
 ALLOWED_ORIGINS = "https://nutritallinn.fitfoodestonia.ee,https://site.nutritallinn.workers.dev"
+# Where the API lives. Maksekeskus is told to call this host for the payment
+# notification and the return leg — never a value taken from a request header.
+API_ORIGIN = "https://site.nutritallinn.workers.dev"

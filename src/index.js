@@ -14,6 +14,12 @@ const MAKSEKESKUS_HOST = 'payment.maksekeskus.ee';
 // Pages may be served from another host (a cPanel subdomain) while the API
 // stays here. Redirects must land back on whichever site the form came from,
 // but only for hosts we allow — otherwise this becomes an open redirect.
+// Where the API actually lives. Maksekeskus must call this host and nobody
+// else, so it is never taken from a request header.
+function apiOrigin(request, env) {
+  return env.API_ORIGIN || new URL(request.url).origin;
+}
+
 function allowedOrigins(env) {
   return (env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 }
@@ -333,7 +339,7 @@ async function handleCheckout(request, env) {
   // sliced UUID, whose version nibble would cost 4 bits of entropy.
   const random = crypto.getRandomValues(new Uint8Array(8));
   const orderId = `NTL-${[...random].map(b => b.toString(16).padStart(2, '0')).join('')}`;
-  const siteUrl = site;
+  const api = apiOrigin(request, env);
   const order = { name, surname, age, phone, email, plan, planName, amount, goal, expectations };
 
   try {
@@ -346,12 +352,12 @@ async function handleCheckout(request, env) {
   // Demo mode when payment keys are absent, same as the Express version.
   if (!env.MAKSEKESKUS_SHOP_ID || !env.MAKSEKESKUS_SECRET_KEY) {
     try {
-      await env.ORDERS.put(orderId, JSON.stringify(order), { expirationTtl: ORDER_TTL_SECONDS });
+      await sendOrderEmails(env, order, orderId);
     } catch (err) {
-      console.error('Demo order storage failed:', err.message);
+      console.error('Demo email error:', err.message);
       return onError;
     }
-    return redirect(`/success?demo=1&orderId=${encodeURIComponent(orderId)}`, site);
+    return redirect('/success?demo=1', site);
   }
 
   try {
@@ -364,9 +370,12 @@ async function handleCheckout(request, env) {
         amount,
         currency: 'EUR',
         reference: orderId,
-        return_url: `${siteUrl}/payment-return`,
-        cancel_url: `${siteUrl}/order?plan=${plan}&cancelled=1`,
-        notification_url: `${siteUrl}/api/payment-notify`,
+        // Both of these must land on the Worker: the notification needs its MAC
+        // verified here, and /payment-return exists only here. The visitor is
+        // sent on to the public site from there.
+        return_url: `${api}/payment-return`,
+        cancel_url: `${site}/order?plan=${plan}&cancelled=1`,
+        notification_url: `${api}/api/payment-notify`,
       },
       customer: { email, country: 'ee', locale: 'ru', ip: request.headers.get('cf-connecting-ip') || '127.0.0.1' },
     }),
@@ -469,26 +478,6 @@ async function handleSurvey(request, env) {
   }
 }
 
-async function handleSuccess(request, env) {
-  const { searchParams } = new URL(request.url);
-  const orderId = searchParams.get('orderId');
-  const keysConfigured = !!(env.MAKSEKESKUS_SHOP_ID && env.MAKSEKESKUS_SECRET_KEY);
-
-  // Demo mode only — with real keys the notification hook sends the mail.
-  if (searchParams.get('demo') === '1' && !keysConfigured && orderId) {
-    const order = await env.ORDERS.get(orderId, 'json');
-    if (order) {
-      try {
-        await sendOrderEmails(env, order, orderId);
-        await env.ORDERS.delete(orderId); // only once the mail actually went out
-      } catch (err) {
-        console.error('Demo email error:', err.message);
-      }
-    }
-  }
-  return env.ASSETS.fetch(new Request(new URL('/success.html', request.url), request));
-}
-
 export default {
   async fetch(request, env, ctx) {
     // One wrapper so every response carries the headers — pages, assets,
@@ -532,7 +521,6 @@ async function route(request, env, ctx) {
 
     if (pathname === '/robots.txt') return robots(request, env);
     if (pathname === '/sitemap.xml') return sitemap(request, env);
-    if (pathname === '/success') return handleSuccess(request, env);
 
     if (pathname === '/payment-return') {
       const site = siteOrigin(request, env);
@@ -544,7 +532,8 @@ async function route(request, env, ctx) {
 
     // Extensionless page routes map onto their .html files.
     const pages = { '/': '/index.html', '/order': '/order.html', '/error': '/error.html',
-                    '/survey': '/survey.html', '/survey-sent': '/survey-sent.html' };
+                    '/success': '/success.html', '/survey': '/survey.html',
+                    '/survey-sent': '/survey-sent.html' };
     if (pages[pathname]) {
       return env.ASSETS.fetch(new Request(new URL(pages[pathname], request.url), request));
     }
