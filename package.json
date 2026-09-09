@@ -1,19 +1,12 @@
 {
   "name": "nutritallinn",
   "version": "1.0.0",
-  "description": "Nutrition consultant booking + payment site",
-  "main": "server.js",
+  "description": "Nutrition consultant booking + payment site (Cloudflare Worker)",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
-  },
-  "dependencies": {
-    "axios": "^1.6.7",
-    "dotenv": "^16.4.1",
-    "express": "^4.18.2",
-    "express-rate-limit": "^7.2.0",
-    "helmet": "^7.1.0",
-    "resend": "^3.2.0"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "build:cpanel": "node build-cpanel.mjs"
   },
   "devDependencies": {
     "playwright": "^1.59.1",

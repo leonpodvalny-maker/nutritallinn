@@ -2,22 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Two deployments, one repo
+## Where the site lives
 
-The same site runs on two hosts while the move off Render finishes:
+| Part | URL | Served by |
+|------|-----|-----------|
+| Pages | https://nutritallinn.fitfoodestonia.ee | cPanel (Virtuaal), static files |
+| API | https://site.nutritallinn.workers.dev | the Worker, `src/index.js` |
 
-| Host | URL | Entry point | Deployed by |
-|------|-----|-------------|-------------|
-| Cloudflare Workers | https://site.nutritallinn.workers.dev | `src/index.js` | `npx wrangler deploy` |
-| Render (legacy) | https://nutritallinn.onrender.com | `server.js` | push to `main` |
+The pages are plain HTML on a PHP host that cannot run the API, so their forms
+post across to the Worker, which redirects the visitor back. Render is gone;
+so is `server.js`.
 
-Workers is the target: it has no cold start, Render's free tier sleeps after
-15 minutes and takes ~30 seconds to wake. Render stays up until a real payment
-has been put through Workers.
-
-**Editing pages means editing twice.** `public/` holds the copies Workers
-serves; the identical files at the repo root are what Render serves. Change one
-and the two sites drift apart. Both copies disappear when Render is retired.
+**A copy of the pages lives on cPanel and is not in this repo.** It is `public/`
+with two changes: form `action`s rewritten to absolute Worker URLs, and an
+`.htaccess` doing extensionless rewrites plus an HTTPS redirect. Edit `public/`,
+run `npm run build:cpanel`, upload the zip it writes — or the two drift apart.
 
 ## Project overview
 
@@ -27,14 +26,10 @@ three API routes: Maksekeskus for payments, Resend for email.
 ## Commands
 
 ```bash
-# Worker (the one that matters)
-npx wrangler dev            # local, http://localhost:8787
-npx wrangler deploy         # publish
-npx wrangler tail           # live logs
-
-# Express (Render only)
-npm run dev
-npm start
+npm run dev                 # local, http://localhost:8787
+npm run deploy              # publish the Worker
+npm run tail                # live logs
+npm run build:cpanel        # build the static copy for the page host
 ```
 
 No test suite or linter.
@@ -42,9 +37,8 @@ No test suite or linter.
 ## Architecture
 
 `src/index.js` is the whole Worker — routes, validation, MAC verification,
-email. Cloudflare serves `public/` through the `ASSETS` binding; the Worker
-maps extensionless paths (`/order` → `order.html`) and generates `robots.txt`
-and `sitemap.xml` from the request origin, so no host is hardcoded.
+email. It also serves `public/` through the `ASSETS` binding, so the Worker URL
+shows the same site as the public one; that copy is what cPanel is built from.
 
 **Payment flow:**
 1. `order.html` posts to `/api/checkout`
@@ -57,7 +51,7 @@ and `sitemap.xml` from the request origin, so no host is hardcoded.
 immediately — no payment involved.
 
 **Demo mode:** without `MAKSEKESKUS_SHOP_ID`/`MAKSEKESKUS_SECRET_KEY`, checkout
-skips payment and redirects to `/success?demo=1`, which sends the mail itself.
+sends the mail immediately and redirects to `/success?demo=1`.
 
 ## Key details
 
@@ -79,7 +73,13 @@ skips payment and redirects to `/success?demo=1`, which sends the mail itself.
   are legitimate and already authenticated by the MAC. A KV failure inside the
   limiter fails open rather than failing the request.
 - **Security headers** (CSP and friends) wrap every response in one place, in
-  `withSecurityHeaders`.
+  `withSecurityHeaders`. The cPanel copy sets its own in `.htaccess`.
+- **Two origins, two jobs.** `ALLOWED_ORIGINS` decides where a *visitor* is sent
+  back to after posting a form — an unlisted referrer falls back to the first
+  entry, so it cannot be used as an open redirect. It does not restrict who may
+  POST. `API_ORIGIN` is where Maksekeskus is told to send the payment
+  notification and the return leg: **configuration, never a request header** —
+  only the Worker can verify a MAC or run `/payment-return`.
 
 ## Configuration
 
@@ -95,17 +95,20 @@ Worker secrets are set with `npx wrangler secret put NAME`.
 | `RESEND_FROM` | Sender, e.g. `Нутрициолог <noreply@fitfoodestonia.ee>` |
 | `MAKSEKESKUS_SHOP_ID` | Maksekeskus shop id |
 | `MAKSEKESKUS_SECRET_KEY` | Maksekeskus secret, used for MAC signing |
-| `SITE_URL` | Optional; the Worker derives its own origin when unset |
+| `ALLOWED_ORIGINS` | Hosts a visitor may be redirected back to, comma-separated; first entry is the public site |
+| `API_ORIGIN` | Where Maksekeskus sends the notification — the Worker |
 
 Resend refuses to send to anyone but the account owner until a domain is
 verified. `fitfoodestonia.ee` is verified, so `RESEND_FROM` must stay on that
-domain. Render reads the same names from its own environment settings.
+domain.
+
+The last two are plain vars in `wrangler.toml`, not secrets.
 
 ## Known gaps
 
 - **The payment path has never run for real** — this site has had no orders.
-  Before testing, point the notification URL in the Maksekeskus dashboard at
-  the host being tested.
+  The notification URL in the Maksekeskus dashboard must be
+  `https://site.nutritallinn.workers.dev/api/payment-notify`.
 - Repeated notifications would send duplicate emails; there is no idempotency
   marker. Judged acceptable at this volume.
 - A Resend failure after the notification is acknowledged only reaches the log.
