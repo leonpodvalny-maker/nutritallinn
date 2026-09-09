@@ -362,24 +362,41 @@ async function handleCheckout(request, env) {
 
   try {
     const auth = btoa(`${env.MAKSEKESKUS_SHOP_ID}:${env.MAKSEKESKUS_SECRET_KEY}`);
-  const res = await fetch('https://api.maksekeskus.ee/v1/transactions', {
-    method: 'POST',
-    headers: { authorization: `Basic ${auth}`, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      transaction: {
-        amount,
-        currency: 'EUR',
-        reference: orderId,
-        // Both of these must land on the Worker: the notification needs its MAC
-        // verified here, and /payment-return exists only here. The visitor is
-        // sent on to the public site from there.
-        return_url: `${api}/payment-return`,
-        cancel_url: `${site}/order?plan=${plan}&cancelled=1`,
-        notification_url: `${api}/api/payment-notify`,
-      },
-      customer: { email, country: 'ee', locale: 'ru', ip: request.headers.get('cf-connecting-ip') || '127.0.0.1' },
-    }),
-  });
+    const transaction = {
+      amount,
+      currency: 'EUR',
+      reference: orderId,
+      // Both of these must land on the Worker: the notification needs its MAC
+      // verified here, and /payment-return exists only here. The visitor is
+      // sent on to the public site from there.
+      return_url: `${api}/payment-return`,
+      cancel_url: `${site}/order?plan=${plan}&cancelled=1`,
+      notification_url: `${api}/api/payment-notify`,
+    };
+    const customer = {
+      email, country: 'ee', locale: 'ru',
+      ip: request.headers.get('cf-connecting-ip') || '127.0.0.1',
+    };
+
+    const createTransaction = (body) => fetch('https://api.maksekeskus.ee/v1/transactions', {
+      method: 'POST',
+      headers: { authorization: `Basic ${auth}`, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    // The Maksekeskus shop is shared with another site, so label whose payment
+    // this is — it shows in the dashboard and on the statement. The field is
+    // cosmetic: if this account rejects it, retry without rather than fail a
+    // payment over a label.
+    const label = `Nutritallinn: ${planName}`;
+    let res = await createTransaction({
+      transaction: { ...transaction, merchant_data: label },
+      customer,
+    });
+    if (res.status === 400) {
+      console.warn('Transaction rejected with merchant_data, retrying without');
+      res = await createTransaction({ transaction, customer });
+    }
 
     if (!res.ok) {
       console.error('Checkout failed:', res.status, await res.text());
