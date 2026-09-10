@@ -93,12 +93,13 @@ async function verifyMac(payload, secretKey, rawJson) {
 const SECURITY_HEADERS = {
   'content-security-policy': [
     "default-src 'self'",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://assets.calendly.com",
     "font-src 'self' https://fonts.gstatic.com",
-    "script-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline' https://assets.calendly.com",
     "img-src 'self' data:",
-    "connect-src 'self'",
-    "frame-src 'none'",
+    "connect-src 'self' https://calendly.com",
+    // The booking page embeds the Calendly widget, which renders in an iframe.
+    "frame-src https://calendly.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self' https://payment.maksekeskus.ee",
@@ -301,7 +302,7 @@ function robots(request, env) {
   const site = env.SITE_URL || new URL(request.url).origin;
   return new Response(
     'User-agent: *\nAllow: /\n' +
-    ['/order', '/success', '/error', '/survey', '/survey-sent', '/api/', '/payment-return']
+    ['/order', '/success', '/error', '/survey', '/survey-sent', '/consultation', '/api/', '/payment-return']
       .map(p => `Disallow: ${p}\n`).join('') +
     `\nSitemap: ${site}/sitemap.xml\n`,
     { headers: { 'content-type': 'text/plain; charset=utf-8' } }
@@ -586,7 +587,8 @@ async function route(request, env, ctx) {
     // Extensionless page routes map onto their .html files.
     const pages = { '/': '/index.html', '/order': '/order.html', '/error': '/error.html',
                     '/success': '/success.html', '/survey': '/survey.html',
-                    '/survey-sent': '/survey-sent.html' };
+                    '/survey-sent': '/survey-sent.html',
+                    '/consultation': '/consultation.html' };
     if (pages[pathname]) {
       return env.ASSETS.fetch(new Request(new URL(pages[pathname], request.url), request));
     }

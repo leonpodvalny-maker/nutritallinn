@@ -44,6 +44,7 @@ Disallow: /success
 Disallow: /error
 Disallow: /survey
 Disallow: /survey-sent
+Disallow: /consultation
 
 Sitemap: ${SITE}/sitemap.xml
 `;

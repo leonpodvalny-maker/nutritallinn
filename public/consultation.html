@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Пробная консультация — Nutritallinn</title>
+  <meta name="description" content="Бесплатный 15-минутный звонок — знакомство и ответы на ваши вопросы. Выберите удобное время." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/form.css" />
+  <style>
+    /* The widget brings its own chrome, so the page only frames it. */
+    main { align-items: flex-start; }
+
+    .booking {
+      width: 100%;
+      max-width: 1000px;
+      text-align: center;
+    }
+
+    .booking h1 {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 400;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+
+    .booking-lead {
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.7;
+      max-width: 34rem;
+      margin: 0 auto 2.5rem;
+    }
+
+    /* The widget reports its own height to the script, which then resizes this
+       element; the value here only holds the space until that happens. */
+    .calendly-inline-widget {
+      min-width: 280px;
+      height: 700px;
+    }
+
+    .booking-fallback {
+      margin-top: 1.5rem;
+      font-size: 0.86rem;
+      color: var(--muted);
+    }
+
+    .booking-fallback a { color: var(--dark); }
+
+    /* main's 5vw padding leaves the long title touching the edges on a phone. */
+    @media (max-width: 640px) {
+      main { padding: 2rem 1.25rem; }
+      .booking h1 { font-size: 1.6rem; }
+      .booking-lead { margin-bottom: 1.75rem; }
+      .calendly-inline-widget { height: 900px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">Нутрициолог</a>
+  <a href="/" class="nav-back">← Назад</a>
+</nav>
+
+<main>
+  <div class="booking">
+    <h1>Пробная консультация</h1>
+    <p class="booking-lead">
+      15 минут, бесплатно. Познакомимся, вы расскажете о своей задаче,
+      а я отвечу на вопросы и предложу, с чего начать.
+      Выберите удобные дату и время — ссылка на звонок придёт вам на почту.
+    </p>
+
+    <div class="calendly-inline-widget"
+         data-url="https://calendly.com/jelena-tsumakova/30min?hide_gdpr_banner=1&primary_color=c8a96e"></div>
+
+    <p class="booking-fallback">
+      Календарь не загрузился?
+      <a href="https://calendly.com/jelena-tsumakova/30min" target="_blank" rel="noopener">Откройте его отдельной страницей</a>
+      или напишите в <a href="https://wa.me/3725543213" target="_blank" rel="noopener">WhatsApp</a>.
+    </p>
+  </div>
+</main>
+
+<script src="https://assets.calendly.com/assets/external/widget.js" async></script>
+
+</body>
+</html>

@@ -1071,7 +1071,9 @@
     <div class="divider" style="margin: 1.5rem auto 1.5rem;"></div>
     <p class="section-lead">Выберите формат, который вам подходит, и оставьте контакт — я свяжусь с вами в течение дня.</p>
     <div style="margin-top: 2.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-      <a href="/survey" class="btn-primary">Заполнить анкету</a>
+      <!-- The survey is hidden while the trial call is being tried out; the page
+           itself still works at /survey. Swap the two lines back to restore it. -->
+      <a href="/consultation" class="btn-primary">Пробная консультация 15 минут</a>
       <a href="https://wa.me/3725543213" class="btn-outline">WhatsApp</a>
       <a href="https://t.me/+3725543213" class="btn-outline">Telegram</a>
     </div>
