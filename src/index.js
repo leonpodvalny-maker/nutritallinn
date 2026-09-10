@@ -8,7 +8,10 @@ const PLANS = {
 };
 const DEFAULT_PLAN = '100';
 const isValidPlan = (plan) => Object.hasOwn(PLANS, plan);
-const ORDER_TTL_SECONDS = 30 * 60;
+// A day, not the half hour a payment takes: the entry is deleted as soon as the
+// notification is handled, so the window only matters when something goes
+// wrong — and then it is the sole copy of what the customer typed.
+const ORDER_TTL_SECONDS = 24 * 60 * 60;
 const MAKSEKESKUS_HOST = 'payment.maksekeskus.ee';
 
 // Pages may be served from another host (a cPanel subdomain) while the API
@@ -366,12 +369,19 @@ async function handleCheckout(request, env) {
       amount,
       currency: 'EUR',
       reference: orderId,
-      // Both of these must land on the Worker: the notification needs its MAC
-      // verified here, and /payment-return exists only here. The visitor is
-      // sent on to the public site from there.
-      return_url: `${api}/payment-return`,
-      cancel_url: `${site}/order?plan=${plan}&cancelled=1`,
-      notification_url: `${api}/api/payment-notify`,
+      // Both the return and the notification must land on the Worker: the
+      // notification needs its MAC verified here, and /payment-return exists
+      // only here. The visitor is sent on to the public site from there.
+      //
+      // The nested transaction_url object is the shape the API documents. Flat
+      // return_url/notification_url properties are silently ignored, and the
+      // shop-level defaults are used instead — which is how a payment ended up
+      // returning to the retired Render host long after it was replaced.
+      transaction_url: {
+        return_url: { url: `${api}/payment-return`, method: 'GET' },
+        cancel_url: { url: `${site}/order?plan=${plan}&cancelled=1`, method: 'GET' },
+        notification_url: { url: `${api}/api/payment-notify`, method: 'POST' },
+      },
     };
     const customer = {
       email, country: 'ee', locale: 'ru',
@@ -453,8 +463,20 @@ async function handlePaymentNotify(request, env, ctx) {
     return new Response('Invalid MAC', { status: 400 });
   }
 
-  const orderId = payload.reference;
-  if (payload.status === 'COMPLETED') {
+  // The notification carries the transaction either nested under `transaction`
+  // or flat at the top level, depending on the API version. Accept both: the
+  // MAC has already authenticated the whole payload either way.
+  const tx = payload.transaction && typeof payload.transaction === 'object'
+    ? payload.transaction
+    : payload;
+  const orderId = tx.reference;
+  const status = tx.status;
+
+  // Without this, a notification in an unrecognised shape is indistinguishable
+  // in the logs from one that never arrived at all.
+  console.log('Payment notification:', orderId || '(no reference)', status || '(no status)');
+
+  if (status === 'COMPLETED') {
     let stored = null;
     try {
       stored = await env.ORDERS.get(orderId, 'json');
@@ -463,9 +485,9 @@ async function handlePaymentNotify(request, env, ctx) {
     }
 
     const order = stored || {
-      name: payload.customer_name || '—', surname: '', age: '—',
-      phone: payload.customer_phone || '—', email: payload.customer_email || '',
-      planName: payload.description || '—', amount: payload.amount,
+      name: tx.customer_name || '—', surname: '', age: '—',
+      phone: tx.customer_phone || '—', email: tx.customer_email || '',
+      planName: tx.merchant_data || tx.description || '—', amount: tx.amount,
     };
 
     // Without the stored order there is no verified customer address, so the
@@ -541,9 +563,23 @@ async function route(request, env, ctx) {
 
     if (pathname === '/payment-return') {
       const site = siteOrigin(request, env);
-      const status = url.searchParams.get('status');
+      // The return leg carries its data either as plain query parameters or as
+      // a `json` parameter holding the transaction, so read both. This decides
+      // only which page the visitor sees; the money is settled by the
+      // MAC-verified notification, so no signature check is needed here.
+      let status = url.searchParams.get('status');
+      let reference = url.searchParams.get('reference');
+      const json = url.searchParams.get('json');
+      if (json) {
+        try {
+          const parsed = JSON.parse(json);
+          const tx = parsed.transaction && typeof parsed.transaction === 'object' ? parsed.transaction : parsed;
+          status = tx.status || status;
+          reference = tx.reference || reference;
+        } catch { /* keep the query parameters */ }
+      }
       return status === 'COMPLETED' || status === 'SUCCESS'
-        ? redirect(`/success?orderId=${encodeURIComponent(url.searchParams.get('reference') || '')}`, site)
+        ? redirect(`/success?orderId=${encodeURIComponent(reference || '')}`, site)
         : redirect('/order?cancelled=1', site);
     }
 
