@@ -24,6 +24,11 @@ RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
 
+# www serves the same pages, so send it to the canonical host rather than
+# leaving a second copy of every URL for search engines to weigh up.
+RewriteCond %{HTTP_HOST} ^www\. [NC]
+RewriteRule ^(.*)$ https://nutritallinn.fitfoodestonia.ee/$1 [R=301,L]
+
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^([^.]+)$ $1.html [L]
@@ -44,7 +49,6 @@ Disallow: /success
 Disallow: /error
 Disallow: /survey
 Disallow: /survey-sent
-Disallow: /consultation
 
 Sitemap: ${SITE}/sitemap.xml
 `;
@@ -55,6 +59,11 @@ const SITEMAP = `<?xml version="1.0" encoding="UTF-8"?>
     <loc>${SITE}/</loc>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${SITE}/consultation</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>
 `;

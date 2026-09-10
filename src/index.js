@@ -302,7 +302,7 @@ function robots(request, env) {
   const site = env.SITE_URL || new URL(request.url).origin;
   return new Response(
     'User-agent: *\nAllow: /\n' +
-    ['/order', '/success', '/error', '/survey', '/survey-sent', '/consultation', '/api/', '/payment-return']
+    ['/order', '/success', '/error', '/survey', '/survey-sent', '/api/', '/payment-return']
       .map(p => `Disallow: ${p}\n`).join('') +
     `\nSitemap: ${site}/sitemap.xml\n`,
     { headers: { 'content-type': 'text/plain; charset=utf-8' } }
