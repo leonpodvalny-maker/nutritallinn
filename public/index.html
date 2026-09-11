@@ -63,7 +63,7 @@
           "name": "Rahvatervise Akadeemia",
           "address": { "@type": "PostalAddress", "addressLocality": "Таллин", "addressCountry": "EE" }
         },
-        "image": "https://nutritallinn.fitfoodestonia.ee/photo-hero.webp",
+        "image": "https://nutritallinn.fitfoodestonia.ee/hero.webp",
         "email": "jelena.tsumakova@gmail.com",
         "telephone": "+3725543213",
         "knowsAbout": [
@@ -749,6 +749,26 @@
       letter-spacing: 0.05em;
     }
 
+    .footer-contact {
+      font-style: normal;
+      font-size: 0.85rem;
+      line-height: 1.9;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .footer-contact a {
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .footer-contact a:hover {
+      color: var(--dark);
+      border-bottom-color: var(--accent);
+    }
+
     .footer-links {
       display: flex;
       gap: 1.5rem;
@@ -1064,6 +1084,8 @@
   </div>
 </div>
 
+<main>
+
 <!-- CTA -->
 <section class="cta-section" id="contact">
   <div class="cta-inner">
@@ -1092,10 +1114,7 @@
     <a href="#services" class="btn-primary">Выбрать формат</a>
   </div>
   <div class="hero-photo">
-    <picture>
-      <source srcset="/photo-hero.webp" type="image/webp" />
-      <img src="/IMG-20260502-WA0003.jpg" alt="Елена Подвальная — нутрициолог в Таллине" fetchpriority="high" />
-    </picture>
+    <img src="/hero.webp" alt="Елена Подвальная — нутрициолог в Таллине" width="900" height="1347" fetchpriority="high" />
   </div>
 </section>
 
@@ -1103,10 +1122,7 @@
 <section class="about-section" id="about">
   <div class="about-inner">
     <div class="about-photo">
-      <picture>
-        <source srcset="/photo-about.webp" type="image/webp" />
-        <img src="/IMG-20260502-WA0000.jpg" alt="Елена Подвальная — нутрициолог в Таллине" loading="lazy" />
-      </picture>
+      <img src="/about.webp" alt="Елена Подвальная — нутрициолог в Таллине" width="900" height="1347" loading="lazy" />
     </div>
     <div class="about-content">
       <p class="section-eyebrow">О себе</p>
@@ -1277,19 +1293,13 @@
       </div>
     </div>
 
-    <picture>
-      <source srcset="/photo-process.webp" type="image/webp" />
-      <img class="process-image" src="/IMG-20260502-WA0007.jpg" alt="Елена Подвальная — нутрициолог" loading="lazy" />
-    </picture>
+    <img class="process-image" src="/process.webp" alt="Елена Подвальная — нутрициолог" width="800" height="1198" loading="lazy" />
   </div>
 </section>
 
 <!-- QUOTE -->
 <section class="quote-section">
-  <picture>
-    <source srcset="/photo-avatar.webp" type="image/webp" />
-    <img class="quote-avatar" src="/IMG-20260502-WA0014.jpg" alt="Елена Подвальная — нутрициолог" loading="lazy" />
-  </picture>
+  <img class="quote-avatar" src="/avatar.webp" alt="Елена Подвальная — нутрициолог" width="176" height="176" loading="lazy" />
   <blockquote>
     «Еда — это не враг и не награда.<br>Это просто топливо, которое должно быть вкусным.»
   </blockquote>
@@ -1357,6 +1367,8 @@
   </div>
 </section>
 
+</main>
+
 <!-- FOOTER -->
 <footer>
   <div class="footer-logo">Елена Подвальная — нутрициолог</div>
@@ -1401,7 +1413,12 @@
       </svg>
     </a>
   </div>
-  <p class="footer-copy">© 2026 Nutritallinn · Таллин, Эстония</p>
+  <address class="footer-contact">
+    Таллин, Эстония ·
+    <a href="tel:+3725543213">+372 55 43 213</a> ·
+    <a href="mailto:jelena.tsumakova@gmail.com">jelena.tsumakova@gmail.com</a>
+  </address>
+  <p class="footer-copy">© 2026 Nutritallinn</p>
 </footer>
 
 <script>

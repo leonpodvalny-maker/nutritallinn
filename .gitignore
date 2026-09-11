@@ -4,3 +4,6 @@ node_modules/
 secrets.json
 dist-cpanel/
 dist-cpanel.zip
+
+# Camera originals kept out of the deploy; optimize-images.mjs reads these.
+originals/
