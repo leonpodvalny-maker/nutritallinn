@@ -45,11 +45,13 @@ const ORDER = {
 const ENV = { RESEND_API_KEY: 'k', RECIPIENT_EMAIL: 'owner@example.com', RESEND_FROM: 'x@y.ee' };
 
 // Stub Resend: fail whichever recipient the case names, record the order sent.
-function stubFetch({ failOwner = false, failCustomer = false }) {
+function stubFetch({ failOwner = false, failCustomer = false, stallCustomer = false }) {
   const sent = [];
   globalThis.fetch = async (_url, init) => {
     const to = JSON.parse(init.body).to;
     sent.push(to);
+    // A customer request that never settles — the case the split exists for.
+    if (to === ORDER.email && stallCustomer) await new Promise(() => {});
     const bad = (to === ENV.RECIPIENT_EMAIL && failOwner) || (to === ORDER.email && failCustomer);
     return bad
       ? new Response('{"message":"rejected"}', { status: 422 })
@@ -90,4 +92,24 @@ const run = async (opts) => {
   console.log('ok  owner failed, throws and customer untouched');
 }
 
-console.log('\nowner mail decides the retry; a retry cannot duplicate the customer mail');
+// 4. The customer request never settles. sendOrderEmails must still resolve:
+//    the owner has the booking, and holding the response open for a courtesy
+//    mail is what lets the provider retry and mail the owner a second time.
+{
+  stubFetch({ stallCustomer: true });
+  // Race the call itself, not a wrapper around it: awaiting the wrapper would
+  // report "resolved" for a call that is still hanging inside.
+  let timer;
+  const settled = await Promise.race([
+    sendOrderEmails(ENV, ORDER, 'NTL-test').then(() => 'resolved', () => 'threw'),
+    new Promise(r => { timer = setTimeout(() => r('hung'), 1000); }),
+  ]);
+  clearTimeout(timer);
+  assert.strictEqual(settled, 'resolved', 'a stalled customer send must not block the caller');
+  console.log('ok  customer send stalls, caller is not blocked');
+  // The stalled fetch is still pending and would keep the process alive.
+  process.exitCode = 0;
+}
+
+console.log('\nowner mail decides the retry; a retry cannot duplicate the customer mail,');
+console.log('and a stalled confirmation cannot delay the answer to the provider');

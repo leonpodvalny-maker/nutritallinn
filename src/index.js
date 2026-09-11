@@ -228,6 +228,13 @@ const wrapper = (title, inner) => `
 // confirmation they can live without. So the owner's decides whether this
 // succeeded — and it goes first, so that a retry driven by its failure cannot
 // send the customer a second copy of a confirmation that already arrived.
+//
+// Hands the customer's send back still in flight, so the caller can answer the
+// payment provider without waiting on a courtesy mail: a customer request that
+// hangs rather than fails would otherwise hold the response open long enough
+// for the provider to retry and mail the owner twice. It comes back inside an
+// object because `return somePromise` from an async function awaits it, which
+// is exactly what this is avoiding.
 async function sendOrderEmails(env, order, orderId) {
   const { name, surname, age, phone, email, planName, amount, goal, expectations } = order;
   await sendMail(env, {
@@ -251,7 +258,7 @@ async function sendOrderEmails(env, order, orderId) {
 
   // The booking is safe now. A bad address here must not fail the
   // notification, or the provider would retry and duplicate the mail above.
-  try {
+  const confirmation = (async () => {
     await sendMail(env, {
       to: email,
       subject: `Запись подтверждена — ${planName}`,
@@ -265,9 +272,9 @@ async function sendOrderEmails(env, order, orderId) {
         </table>
         <p style="margin-top:32px;font-size:0.85em;color:#999;">Nutritallinn — нутрициолог в Таллине</p>`),
     });
-  } catch (err) {
-    console.error('Customer confirmation failed for', orderId, err.message);
-  }
+  })().catch(err => console.error('Customer confirmation failed for', orderId, err.message));
+
+  return { confirmation };
 }
 
 // Fallback when the paid order is not in KV: only the payment provider's own
@@ -497,7 +504,11 @@ async function handlePaymentNotify(request, env, ctx) {
     // confirmation would bounce; notify the owner alone and say why.
     try {
       if (stored) {
-        await sendOrderEmails(env, order, orderId);
+        // Resolves once the owner has been told; the customer's confirmation
+        // finishes after the response, so a slow one cannot hold this open
+        // long enough for the provider to retry and mail the owner twice.
+        const { confirmation } = await sendOrderEmails(env, order, orderId);
+        ctx.waitUntil(confirmation);
         // Only now is the mail out; until then the entry is the only copy.
         try {
           await env.ORDERS.delete(orderId);
