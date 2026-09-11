@@ -108,6 +108,9 @@ const SECURITY_HEADERS = {
   'referrer-policy': 'strict-origin-when-cross-origin',
   'x-frame-options': 'DENY',
   'strict-transport-security': 'max-age=15552000; includeSubDomains',
+  // workers.dev serves the same pages as the public host but is not the public
+  // host; robots.txt alone would not stop a page indexed through a direct link.
+  'x-robots-tag': 'noindex, nofollow',
 };
 
 function withSecurityHeaders(response) {
@@ -220,9 +223,13 @@ const wrapper = (title, inner) => `
     ${inner}
   </div>`;
 
+// The two mails are not equally important. Losing the owner's means the
+// booking is invisible and must be retried; losing the customer's costs a
+// confirmation they can live without, and a retry would duplicate the owner's.
+// So the owner's decides whether this succeeded.
 async function sendOrderEmails(env, order, orderId) {
   const { name, surname, age, phone, email, planName, amount, goal, expectations } = order;
-  await Promise.all([
+  const [owner, customer] = await Promise.allSettled([
     sendMail(env, {
       to: env.RECIPIENT_EMAIL,
       reply_to: email,
@@ -255,6 +262,11 @@ async function sendOrderEmails(env, order, orderId) {
         <p style="margin-top:32px;font-size:0.85em;color:#999;">Nutritallinn — нутрициолог в Таллине</p>`),
     }),
   ]);
+
+  if (customer.status === 'rejected') {
+    console.error('Customer confirmation failed for', orderId, customer.reason?.message);
+  }
+  if (owner.status === 'rejected') throw owner.reason;
 }
 
 // Fallback when the paid order is not in KV: only the payment provider's own
@@ -298,18 +310,16 @@ async function sendSurveyEmail(env, entry) {
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
-function robots(request, env) {
-  const site = env.SITE_URL || new URL(request.url).origin;
-  return new Response(
-    'User-agent: *\nAllow: /\n' +
-    ['/order', '/success', '/error', '/survey', '/survey-sent', '/api/', '/payment-return']
-      .map(p => `Disallow: ${p}\n`).join('') +
-    `\nSitemap: ${site}/sitemap.xml\n`,
-    { headers: { 'content-type': 'text/plain; charset=utf-8' } }
-  );
+// The Worker is the API and a staging copy of the pages, not the public site —
+// that is the cPanel host, which serves its own robots.txt and sitemap. Keeping
+// workers.dev out of the index stops it competing with the canonical pages it
+// happens to serve.
+function robots() {
+  return new Response('User-agent: *\nDisallow: /\n',
+    { headers: { 'content-type': 'text/plain; charset=utf-8' } });
 }
 
-// Served from the Worker so the host is always the one actually in use.
+// Kept for the public host, which is generated from this source.
 function sitemap(request, env) {
   const site = env.SITE_URL || new URL(request.url).origin;
   return new Response(
@@ -491,14 +501,31 @@ async function handlePaymentNotify(request, env, ctx) {
       planName: tx.merchant_data || tx.description || '—', amount: tx.amount,
     };
 
+    // Finish the mail before answering. Acknowledging first would mean a Resend
+    // outage loses a paid booking silently, with only a log line to show for
+    // it — the same outcome as the notification that never arrived, for a
+    // different reason. A non-2xx makes Maksekeskus retry instead.
+    //
     // Without the stored order there is no verified customer address, so the
     // confirmation would bounce; notify the owner alone and say why.
-    const notify = stored
-      ? sendOrderEmails(env, order, orderId).then(() => env.ORDERS.delete(orderId))
-      : sendOwnerOnlyEmail(env, order, orderId);
-
-    // Answer Maksekeskus immediately; the mail can finish after the response.
-    ctx.waitUntil(notify.catch(err => console.error('Order email error:', err.message)));
+    try {
+      if (stored) {
+        await sendOrderEmails(env, order, orderId);
+        // Only now is the mail out; until then the entry is the only copy.
+        try {
+          await env.ORDERS.delete(orderId);
+        } catch (err) {
+          // The owner has been told about the order, so a stale entry is
+          // harmless — it expires on its own. Not worth a retry.
+          console.error('Order cleanup failed for', orderId, err.message);
+        }
+      } else {
+        await sendOwnerOnlyEmail(env, order, orderId);
+      }
+    } catch (err) {
+      console.error('Order email error:', err.message);
+      return new Response('Email failed', { status: 500 });
+    }
   }
   return new Response('OK');
 }

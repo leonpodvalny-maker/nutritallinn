@@ -6,7 +6,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail",
-    "build:cpanel": "node build-cpanel.mjs"
+    "build:cpanel": "node build-cpanel.mjs",
+    "test": "node test/notify-priority.mjs"
   },
   "devDependencies": {
     "playwright": "^1.59.1",
