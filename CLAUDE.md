@@ -30,9 +30,13 @@ npm run dev                 # local, http://localhost:8787
 npm run deploy              # publish the Worker
 npm run tail                # live logs
 npm run build:cpanel        # build the static copy for the page host
+npm test                    # the notification mail priority
 ```
 
-No test suite or linter.
+No linter. The only test covers `sendOrderEmails`: the owner's mail decides
+whether a notification succeeded, and the customer's must never be sent before
+it — a retry would otherwise duplicate a confirmation. That ordering is silent
+when wrong and costly, so it is pinned.
 
 ## Architecture
 
@@ -64,10 +68,14 @@ sends the mail immediately and redirects to `/success?demo=1`.
   **Do not narrow this** until a real callback proves which form arrives.
 - **Order ids** are `NTL-` plus 16 hex characters, 20 in total: Maksekeskus
   documents a 20-character limit on the reference.
-- **KV** (`ORDERS` binding) holds pending orders for 30 minutes and the rate
+- **KV** (`ORDERS` binding) holds pending orders for 24 hours and the rate
   limiter's counters under an `rl:` prefix. It is eventually consistent — if a
   notification arrives before the write lands, the owner still gets a mail
   saying the form data is missing.
+- **The notification answers only once the owner's mail is out.** A 500 makes
+  Maksekeskus retry; acknowledging first would lose a paid booking to a Resend
+  outage with nothing but a log line. The customer's confirmation is sent after
+  the owner's and never fails the request.
 - **Rate limit:** 10 posts per IP per 15 minutes on `/api/checkout` and
   `/api/survey`. `/api/payment-notify` is deliberately unlimited — the retries
   are legitimate and already authenticated by the MAC. A KV failure inside the
@@ -106,9 +114,15 @@ The last two are plain vars in `wrangler.toml`, not secrets.
 
 ## Known gaps
 
-- **The payment path has never run for real** — this site has had no orders.
-  The notification URL in the Maksekeskus dashboard must be
-  `https://site.nutritallinn.workers.dev/api/payment-notify`.
-- Repeated notifications would send duplicate emails; there is no idempotency
-  marker. Judged acceptable at this volume.
-- A Resend failure after the notification is acknowledged only reaches the log.
+- **The payment path has never completed end to end.** One real payment was
+  made on 9 Sept 2026. It succeeded, but the callbacks were sent as flat
+  `return_url`/`notification_url` properties, which the API ignores in favour
+  of the shop defaults — and those pointed at the retired Render host. So the
+  customer returned to a dead page and the owner was never told. Both halves
+  are fixed (nested `transaction_url` in the code, corrected URLs in the
+  Maksekeskus dashboard), but only a real payment can confirm it.
+- Repeated notifications would send duplicate emails to the owner; there is no
+  idempotency marker. Judged acceptable at this volume — and preferable to the
+  alternative, which is losing a paid booking.
+- The Worker is `noindex` (robots.txt and `X-Robots-Tag`): it serves the same
+  pages as the public host without being it. Only cPanel is indexed.

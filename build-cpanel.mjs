@@ -68,6 +68,19 @@ const SITEMAP = `<?xml version="1.0" encoding="UTF-8"?>
 </urlset>
 `;
 
+// Check the source before touching the previous build: a failure here should
+// leave the last usable artifact where it is.
+for (const name of await readdir(SRC)) {
+  if (!name.endsWith('.html')) continue;
+  // Rewriting the retired host silently is what hid a dead canonical URL in
+  // the source for weeks: the built pages were right, so nothing looked wrong.
+  // Fail instead, and fix it where it is written.
+  if ((await readFile(join(SRC, name), 'utf8')).includes('nutritallinn.onrender.com')) {
+    console.error(`${name} still references the retired Render host — fix public/${name}`);
+    process.exit(1);
+  }
+}
+
 await rm(OUT, { recursive: true, force: true });
 await mkdir(OUT, { recursive: true });
 
@@ -80,13 +93,6 @@ for (const name of await readdir(SRC)) {
     continue;
   }
   const html = await readFile(from, 'utf8');
-  // Rewriting the retired host silently is what hid a dead canonical URL in
-  // the source for weeks: the built pages were right, so nothing looked wrong.
-  // Fail instead, and fix it where it is written.
-  if (html.includes('nutritallinn.onrender.com')) {
-    console.error(`${name} still references the retired Render host — fix public/${name}`);
-    process.exit(1);
-  }
   const out = html.replaceAll('action="/api/', `action="${API}/api/`);
   if (out !== html) rewritten++;
   await writeFile(to, out);

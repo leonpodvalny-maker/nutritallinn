@@ -225,30 +225,34 @@ const wrapper = (title, inner) => `
 
 // The two mails are not equally important. Losing the owner's means the
 // booking is invisible and must be retried; losing the customer's costs a
-// confirmation they can live without, and a retry would duplicate the owner's.
-// So the owner's decides whether this succeeded.
+// confirmation they can live without. So the owner's decides whether this
+// succeeded — and it goes first, so that a retry driven by its failure cannot
+// send the customer a second copy of a confirmation that already arrived.
 async function sendOrderEmails(env, order, orderId) {
   const { name, surname, age, phone, email, planName, amount, goal, expectations } = order;
-  const [owner, customer] = await Promise.allSettled([
-    sendMail(env, {
-      to: env.RECIPIENT_EMAIL,
-      reply_to: email,
-      subject: `Новая запись: ${planName} — ${name} ${surname}`,
-      html: wrapper('Новая запись на консультацию', `
-        <table style="width:100%;border-collapse:collapse;">
-          ${row('Услуга', planName)}
-          ${row('Сумма', `${amount} €`)}
-          ${row('Имя', `${name} ${surname}`)}
-          ${row('Возраст', age)}
-          ${row('Телефон', phone)}
-          ${row('E-mail', email)}
-          ${row('Ожидаемый результат', goal, true)}
-          ${row('Ожидания от работы', expectations, true)}
-          ${row('Номер заказа', orderId)}
-        </table>
-        <p style="margin-top:32px;font-size:0.85em;color:#999;">Оплата подтверждена через Maksekeskus</p>`),
-    }),
-    sendMail(env, {
+  await sendMail(env, {
+    to: env.RECIPIENT_EMAIL,
+    reply_to: email,
+    subject: `Новая запись: ${planName} — ${name} ${surname}`,
+    html: wrapper('Новая запись на консультацию', `
+      <table style="width:100%;border-collapse:collapse;">
+        ${row('Услуга', planName)}
+        ${row('Сумма', `${amount} €`)}
+        ${row('Имя', `${name} ${surname}`)}
+        ${row('Возраст', age)}
+        ${row('Телефон', phone)}
+        ${row('E-mail', email)}
+        ${row('Ожидаемый результат', goal, true)}
+        ${row('Ожидания от работы', expectations, true)}
+        ${row('Номер заказа', orderId)}
+      </table>
+      <p style="margin-top:32px;font-size:0.85em;color:#999;">Оплата подтверждена через Maksekeskus</p>`),
+  });
+
+  // The booking is safe now. A bad address here must not fail the
+  // notification, or the provider would retry and duplicate the mail above.
+  try {
+    await sendMail(env, {
       to: email,
       subject: `Запись подтверждена — ${planName}`,
       html: wrapper('Спасибо за запись!', `
@@ -260,13 +264,10 @@ async function sendOrderEmails(env, order, orderId) {
           ${row('Номер заказа', orderId)}
         </table>
         <p style="margin-top:32px;font-size:0.85em;color:#999;">Nutritallinn — нутрициолог в Таллине</p>`),
-    }),
-  ]);
-
-  if (customer.status === 'rejected') {
-    console.error('Customer confirmation failed for', orderId, customer.reason?.message);
+    });
+  } catch (err) {
+    console.error('Customer confirmation failed for', orderId, err.message);
   }
-  if (owner.status === 'rejected') throw owner.reason;
 }
 
 // Fallback when the paid order is not in KV: only the payment provider's own
@@ -319,22 +320,8 @@ function robots() {
     { headers: { 'content-type': 'text/plain; charset=utf-8' } });
 }
 
-// Kept for the public host, which is generated from this source.
-function sitemap(request, env) {
-  const site = env.SITE_URL || new URL(request.url).origin;
-  return new Response(
-    `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>${site}/</loc>
-    <changefreq>monthly</changefreq>
-    <priority>1.0</priority>
-  </url>
-</urlset>
-`,
-    { headers: { 'content-type': 'application/xml; charset=utf-8' } }
-  );
-}
+// No sitemap here: this host is noindex, so one listing its own URLs would
+// only contradict that. The public sitemap is written by build-cpanel.mjs.
 
 async function handleCheckout(request, env) {
   await enforceRateLimit(env, request, 'checkout');
@@ -587,7 +574,6 @@ async function route(request, env, ctx) {
     }
 
     if (pathname === '/robots.txt') return robots(request, env);
-    if (pathname === '/sitemap.xml') return sitemap(request, env);
 
     if (pathname === '/payment-return') {
       const site = siteOrigin(request, env);
