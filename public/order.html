@@ -37,38 +37,38 @@
       <div class="form-row">
         <div class="form-group">
           <label for="name">Имя</label>
-          <input type="text" id="name" name="name" placeholder="Мария" required />
+          <input type="text" id="name" autocomplete="given-name" name="name" placeholder="Мария" required />
         </div>
         <div class="form-group">
           <label for="surname">Фамилия</label>
-          <input type="text" id="surname" name="surname" placeholder="Иванова" required />
+          <input type="text" id="surname" autocomplete="family-name" name="surname" placeholder="Иванова" required />
         </div>
       </div>
 
       <div class="form-group">
         <label for="age">Возраст</label>
-        <input type="number" id="age" name="age" placeholder="30" min="16" max="99" required />
+        <input type="number" id="age" autocomplete="off" name="age" placeholder="30" min="16" max="99" required />
       </div>
 
       <div class="form-group">
         <label for="phone">Телефон</label>
-        <input type="tel" id="phone" name="phone" placeholder="+372 55 43 213" required />
+        <input type="tel" id="phone" autocomplete="tel" name="phone" placeholder="+372 55 43 213" required />
       </div>
 
       <div class="form-group">
         <label for="email">E-mail</label>
-        <input type="email" id="email" name="email" placeholder="maria@gmail.com" required />
+        <input type="email" id="email" autocomplete="email" name="email" placeholder="maria@gmail.com" required />
       </div>
 
       <div class="form-group" id="goalGroup" hidden>
         <label for="goal">Ожидаемый результат</label>
-        <textarea id="goal" name="goal" maxlength="1000"
+        <textarea id="goal" autocomplete="off" name="goal" maxlength="1000"
                   placeholder="Чего вы хотите достичь? Например: снизить вес, наладить питание, разобраться с нехваткой энергии."></textarea>
       </div>
 
       <div class="form-group" id="expectationsGroup" hidden>
         <label for="expectations">Ожидания от работы со мной</label>
-        <textarea id="expectations" name="expectations" maxlength="1000"
+        <textarea id="expectations" autocomplete="off" name="expectations" maxlength="1000"
                   placeholder="Что для вас важно в совместной работе? Например: поддержка и обратная связь, чёткий план, объяснения без давления."></textarea>
       </div>
 

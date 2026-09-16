@@ -17,14 +17,15 @@
   <meta property="og:url" content="https://nutritallinn.fitfoodestonia.ee/" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="ru_RU" />
-  <meta property="og:image" content="https://nutritallinn.fitfoodestonia.ee/photo-og.webp" />
+  <meta property="og:image" content="https://nutritallinn.fitfoodestonia.ee/photo-og.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
+  <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:alt" content="Елена Подвальная — нутрициолог в Таллине" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Нутрициолог в Таллине — Елена Подвальная" />
   <meta name="twitter:description" content="Индивидуальные консультации по питанию в Таллине. От 75 €." />
-  <meta name="twitter:image" content="https://nutritallinn.fitfoodestonia.ee/photo-og.webp" />
+  <meta name="twitter:image" content="https://nutritallinn.fitfoodestonia.ee/photo-og.jpg" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <script type="application/ld+json">
@@ -211,9 +212,8 @@
     }
   ]
   </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/fonts.css" />
+  <link rel="preload" href="/fonts/cormorant-garamond-cyrillic.woff2" as="font" type="font/woff2" crossorigin />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1057,9 +1057,26 @@
       .card { padding: 2.5rem 2rem; }
       footer { flex-direction: column; text-align: center; }
     }
+
+    /* Off-screen until focused: the first Tab press on the page reveals it. */
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      z-index: 200;
+      background: var(--dark);
+      color: #fff;
+      padding: 0.85rem 1.4rem;
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+
+    .skip-link:focus { left: 0; }
   </style>
 </head>
 <body>
+
+<a href="#main" class="skip-link">К содержанию</a>
 
 <!-- NAV -->
 
@@ -1096,7 +1113,7 @@
   </div>
 </div>
 
-<main>
+<main id="main">
 
 <!-- CTA -->
 <section class="cta-section" id="contact">

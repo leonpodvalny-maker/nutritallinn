@@ -8,7 +8,7 @@
 //
 // Upload the zip through the cPanel file manager, extract, delete the zip.
 
-import { readdir, readFile, writeFile, mkdir, copyFile, rm } from 'node:fs/promises';
+import { readdir, readFile, writeFile, mkdir, cp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createWriteStream } from 'node:fs';
 import { execFile } from 'node:child_process';
@@ -26,8 +26,19 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
 
 # www serves the same pages, so send it to the canonical host rather than
 # leaving a second copy of every URL for search engines to weigh up.
-RewriteCond %{HTTP_HOST} ^www\. [NC]
+RewriteCond %{HTTP_HOST} ^www\\. [NC]
 RewriteRule ^(.*)$ https://nutritallinn.fitfoodestonia.ee/$1 [R=301,L]
+
+# /index.html and /order.html are the same pages as / and /order. Send the
+# .html spelling to the canonical one rather than letting both be indexed.
+# The Google verification file must keep its .html: that exact URL is what
+# Search Console fetches.
+RewriteCond %{REQUEST_URI} !^/google[0-9a-f]+\\.html$
+RewriteCond %{THE_REQUEST} "\\s/+([^\\s?]*?)index\\.html[\\s?]" [NC]
+RewriteRule ^ /%1 [R=301,L,NE]
+RewriteCond %{REQUEST_URI} !^/google[0-9a-f]+\\.html$
+RewriteCond %{THE_REQUEST} "\\s/+([^\\s?]+?)\\.html[\\s?]" [NC]
+RewriteRule ^ /%1 [R=301,L,NE]
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
@@ -94,7 +105,8 @@ for (const name of await readdir(SRC)) {
   const from = join(SRC, name);
   const to = join(OUT, name);
   if (!name.endsWith('.html')) {
-    await copyFile(from, to);
+    // cp, not copyFile: public/fonts is a directory.
+    await cp(from, to, { recursive: true });
     continue;
   }
   const html = await readFile(from, 'utf8');

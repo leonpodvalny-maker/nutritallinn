@@ -93,8 +93,8 @@ async function verifyMac(payload, secretKey, rawJson) {
 const SECURITY_HEADERS = {
   'content-security-policy': [
     "default-src 'self'",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://assets.calendly.com",
-    "font-src 'self' https://fonts.gstatic.com",
+    "style-src 'self' 'unsafe-inline' https://assets.calendly.com",
+    "font-src 'self'",
     "script-src 'self' 'unsafe-inline' https://assets.calendly.com",
     "img-src 'self' data:",
     "connect-src 'self' https://calendly.com",
