@@ -184,3 +184,14 @@
       .form-card { padding: 2rem 1.5rem; }
       .form-row { grid-template-columns: 1fr; }
     }
+
+    /* Sits under the submit button: quiet, but the link must be findable. */
+    .consent-note {
+      margin-top: 1rem;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .consent-note a { color: var(--dark); }

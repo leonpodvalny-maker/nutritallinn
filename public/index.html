@@ -749,6 +749,18 @@
       letter-spacing: 0.05em;
     }
 
+    .footer-copy a {
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .footer-copy a:hover {
+      color: var(--dark);
+      border-bottom-color: var(--accent);
+    }
+
     .footer-contact {
       font-style: normal;
       font-size: 0.85rem;
@@ -1418,7 +1430,7 @@
     <a href="tel:+3725543213">+372 55 43 213</a> ·
     <a href="mailto:jelena.tsumakova@gmail.com">jelena.tsumakova@gmail.com</a>
   </address>
-  <p class="footer-copy">© 2026 Nutritallinn</p>
+  <p class="footer-copy">© 2026 Nutritallinn · <a href="/privacy">Конфиденциальность</a></p>
 </footer>
 
 <script>

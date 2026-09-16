@@ -612,7 +612,8 @@ async function route(request, env, ctx) {
     const pages = { '/': '/index.html', '/order': '/order.html', '/error': '/error.html',
                     '/success': '/success.html', '/survey': '/survey.html',
                     '/survey-sent': '/survey-sent.html',
-                    '/consultation': '/consultation.html' };
+                    '/consultation': '/consultation.html',
+                    '/privacy': '/privacy.html' };
     if (pages[pathname]) {
       return env.ASSETS.fetch(new Request(new URL(pages[pathname], request.url), request));
     }
