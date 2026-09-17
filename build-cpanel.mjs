@@ -34,7 +34,7 @@ RewriteRule ^(.*)$ https://nutritallinn.fitfoodestonia.ee/$1 [R=301,L]
 # The Google verification file must keep its .html: that exact URL is what
 # Search Console fetches.
 RewriteCond %{REQUEST_URI} !^/google[0-9a-f]+\\.html$
-RewriteCond %{THE_REQUEST} "\\s/+([^\\s?]*?)index\\.html[\\s?]" [NC]
+RewriteCond %{THE_REQUEST} "\\s/+(|[^\\s?]*?/)index\\.html[\\s?]" [NC]
 RewriteRule ^ /%1 [R=301,L,NE]
 RewriteCond %{REQUEST_URI} !^/google[0-9a-f]+\\.html$
 RewriteCond %{THE_REQUEST} "\\s/+([^\\s?]+?)\\.html[\\s?]" [NC]
@@ -124,7 +124,11 @@ await writeFile(join(OUT, 'sitemap.xml'), SITEMAP);
 const forms = [];
 for (const name of ['order.html', 'survey.html']) {
   const html = await readFile(join(OUT, name), 'utf8');
-  for (const [, action] of html.matchAll(/action="([^"]+)"/g)) forms.push([name, action]);
+  // Both quote styles: a single-quoted action used to slip past this check
+  // and ship a form posting to a path the static host does not have.
+  for (const [, dq, sq] of html.matchAll(/action=(?:"([^"]*)"|'([^']*)')/g)) {
+    forms.push([name, dq ?? sq]);
+  }
 }
 const broken = forms.filter(([, action]) => !action.startsWith(API));
 if (broken.length) {
