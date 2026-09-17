@@ -195,3 +195,12 @@
     }
 
     .consent-note a { color: var(--dark); }
+
+    /* Under the two optional free-text fields. They are where someone may
+       write about their health, so say plainly that they can be left empty. */
+    .field-note {
+      margin-top: 0.5rem;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: var(--muted);
+    }
