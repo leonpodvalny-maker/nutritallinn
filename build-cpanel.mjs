@@ -124,10 +124,12 @@ await writeFile(join(OUT, 'sitemap.xml'), SITEMAP);
 const forms = [];
 for (const name of ['order.html', 'survey.html']) {
   const html = await readFile(join(OUT, name), 'utf8');
-  // Both quote styles: a single-quoted action used to slip past this check
-  // and ship a form posting to a path the static host does not have.
-  for (const [, dq, sq] of html.matchAll(/action=(?:"([^"]*)"|'([^']*)')/g)) {
-    forms.push([name, dq ?? sq]);
+  // Every spelling HTML allows: either quote, no quotes at all, whitespace
+  // around the =, any case. A form that slips past this check ships posting
+  // to a path the static host does not serve, and the build says nothing.
+  for (const [, dq, sq, bare] of
+       html.matchAll(/\baction\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi)) {
+    forms.push([name, dq ?? sq ?? bare]);
   }
 }
 const broken = forms.filter(([, action]) => !action.startsWith(API));
