@@ -53,13 +53,13 @@ RewriteRule ^([^.]+)$ $1.html [L]
 ErrorDocument 404 /error.html
 `;
 
+// The transactional pages carry their own noindex, which is the stronger
+// signal — but only if a crawler is allowed to fetch them and read it.
+// Disallowing them here meant Google saw three /order?plan= URLs it could not
+// look at, and a blocked URL can still surface as a bare link in results.
+// Let it in; the meta tag then keeps them out for good.
 const ROBOTS = `User-agent: *
 Allow: /
-Disallow: /order
-Disallow: /success
-Disallow: /error
-Disallow: /survey
-Disallow: /survey-sent
 
 Sitemap: ${SITE}/sitemap.xml
 `;
